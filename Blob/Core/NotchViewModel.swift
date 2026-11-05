@@ -43,6 +43,7 @@ final class NotchViewModel: ObservableObject {
             services.timers.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             services.claude.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             services.calendar.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+            services.updates.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             Timer.publish(every: 1, on: .main, in: .common).autoconnect().map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(changes)
@@ -251,7 +252,7 @@ final class NotchViewModel: ObservableObject {
         let s = services
         if let wake = wakeUntil, wake > Date() { return .sleepy }
         if s.timers.ringing != nil || s.claude.aggregate == .waiting { return .alarmed }
-        if s.claude.aggregate == .working { return .busy }
+        if s.claude.aggregate == .working || s.updates.isUpdating { return .busy }
         if s.nowPlaying.isPlaying { return .happy }
         if phase == .peek { return .curious }
         if Date().timeIntervalSince(lastInteraction) > 600 { return .sleepy }

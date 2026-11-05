@@ -16,6 +16,7 @@ final class Services: ObservableObject {
     let tools: QuickToolsService
     let stats: StatsService
     let camera: CameraService
+    let updates: UpdateService
 
     private init() {
         let notices = NoticeCenter()
@@ -30,6 +31,7 @@ final class Services: ObservableObject {
         tools = QuickToolsService(notices: notices)
         stats = StatsService(notices: notices)
         camera = CameraService()
+        updates = UpdateService(notices: notices)
     }
 
     func start() {
@@ -40,6 +42,7 @@ final class Services: ObservableObject {
         timers.start()
         claude.start()
         stats.start()
+        updates.start()
     }
 }
 
@@ -58,5 +61,6 @@ extension View {
             .environmentObject(s.tools)
             .environmentObject(s.stats)
             .environmentObject(s.camera)
+            .environmentObject(s.updates)
     }
 }

@@ -43,6 +43,15 @@ open Blob.xcodeproj          # choose your team under Signing & Capabilities, th
 
 After changing `project.yml`, run `xcodegen generate` again. The `.xcodeproj` is generated and not committed.
 
+### Updating
+
+Blob can update itself. Settings → Updates → **Update**, or the ⬇ button in the notch header when a new version is waiting. It runs `scripts/update.sh`, which:
+1. runs `git pull` in the source folder (the clone Blob was built from; you can change it in Settings),
+2. rebuilds a Release copy with Xcode, signed with the same team as the running app,
+3. quits Blob, replaces `/Applications/Blob.app` and relaunches it.
+
+Blob checks for new commits at launch and every 6 hours. Because each build is signed with your own certificate, macOS keeps your permissions. You can also run it by hand: `./scripts/update.sh build`.
+
 ### Release (Developer ID + notarization)
 
 ```bash

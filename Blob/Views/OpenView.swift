@@ -3,6 +3,7 @@ import SwiftUI
 /// The expanded notch: a header row beside the hardware notch, and the selected module below.
 struct OpenView: View {
     @ObservedObject var vm: NotchViewModel
+    @EnvironmentObject private var updates: UpdateService
     @Namespace private var tabNS
 
     var body: some View {
@@ -51,6 +52,15 @@ struct OpenView: View {
                     }
                     .buttonStyle(PressStyle())
                     .help(m.title)
+                }
+                if updates.isAvailable || updates.isUpdating {
+                    IconButton(symbol: updates.isUpdating ? "arrow.triangle.2.circlepath" : "arrow.down.circle.fill",
+                               size: 10, active: true,
+                               help: updates.isUpdating ? "Updating…" : "Update Blob") {
+                        updates.update()
+                    }
+                    .symbolEffect(.pulse, isActive: updates.isUpdating)
+                    .transition(.scale.combined(with: .opacity))
                 }
                 IconButton(symbol: vm.isPinned ? "pin.fill" : "pin", size: 10, active: vm.isPinned,
                            help: vm.isPinned ? "Unpin (close when the cursor leaves)" : "Pin open") {

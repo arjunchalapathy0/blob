@@ -7,6 +7,7 @@ struct SettingsView: View {
     @EnvironmentObject private var calendar: CalendarService
     @EnvironmentObject private var camera: CameraService
     @EnvironmentObject private var nowPlaying: NowPlayingService
+    @EnvironmentObject private var updates: UpdateService
 
     @AppStorage(Prefs.openOnHover) private var openOnHover = true
     @AppStorage(Prefs.hoverDelay) private var hoverDelay = 0.3
@@ -106,6 +107,31 @@ struct SettingsView: View {
                 Toggle("Timer sound", isOn: $timerSound)
             }
 
+            Section {
+                LabeledContent("Status") {
+                    HStack {
+                        Text(updateStatus).foregroundStyle(.secondary).lineLimit(2)
+                        if updates.isAvailable {
+                            Button("Update") { updates.update() }.keyboardShortcut(.defaultAction)
+                        } else {
+                            Button("Check now") { Task { await updates.check() } }
+                                .disabled(updates.isUpdating || updates.state == .checking)
+                        }
+                    }
+                }
+                LabeledContent("Source folder") {
+                    HStack {
+                        Text(updates.sourceURL?.path ?? "Not set")
+                            .foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
+                        Button("Change…") { chooseSource() }
+                    }
+                }
+            } header: {
+                Text("Updates")
+            } footer: {
+                Text("Update pulls the latest code into the source folder, rebuilds Blob with Xcode, and relaunches it. Your permissions carry over.")
+            }
+
             Section("Permissions") {
                 PermissionRow(title: "Calendar", granted: calendar.isAuthorized,
                               detail: "Shows upcoming events.") { calendar.requestAccess() }
@@ -125,6 +151,27 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 480, height: 640)
         .onAppear { claude.refreshInstallState() }
+    }
+
+    private var updateStatus: String {
+        switch updates.state {
+        case .idle: return "Not checked yet"
+        case .checking: return "Checking…"
+        case .upToDate: return "Up to date"
+        case .available(let count, let summary):
+            return "\(count) new change\(count == 1 ? "" : "s")" + (summary.isEmpty ? "" : ": \(summary)")
+        case .updating: return "Building the new version…"
+        case .failed(let message): return message
+        }
+    }
+
+    private func chooseSource() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Use Folder"
+        panel.message = "Choose the blob folder (the one with project.yml and scripts/)."
+        if panel.runModal() == .OK, let url = panel.url { updates.setSource(url) }
     }
 
     private func setLaunchAtLogin(_ on: Bool) {

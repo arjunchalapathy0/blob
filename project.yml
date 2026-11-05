@@ -19,6 +19,7 @@ targets:
   Blob:
     type: application
     platform: macOS
+    scheme: {}
     sources:
       - path: Blob
         excludes:
@@ -38,6 +39,7 @@ targets:
         NSCalendarsUsageDescription: Blob shows your next events in the notch.
         NSCameraUsageDescription: Blob shows a mirror when you open the Camera tab.
         NSAppleEventsUsageDescription: Blob reads and controls Music and Spotify, and can toggle dark mode.
+        BlobSourcePath: $(PROJECT_DIR)
     entitlements:
       path: Blob/Blob.entitlements
       properties:
