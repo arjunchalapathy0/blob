@@ -1,0 +1,8 @@
+.DS_Store
+*.xcodeproj/
+build/
+DerivedData/
+Vendor/MediaRemoteAdapter/
+Vendor/src/
+*.xcarchive
+dist/
