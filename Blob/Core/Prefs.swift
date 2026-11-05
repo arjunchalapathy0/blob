@@ -12,6 +12,7 @@ enum Prefs {
     static let claudeSounds = "claudeSounds"
     static let chargingNotice = "chargingNotice"
     static let timerSound = "timerSound"
+    static let stayOpen = "stayOpen"
 
     static func registerDefaults() {
         var defaults: [String: Any] = [
@@ -26,6 +27,7 @@ enum Prefs {
             claudeSounds: true,
             chargingNotice: true,
             timerSound: true,
+            stayOpen: false,
         ]
         for module in ModuleID.allCases { defaults[module.prefKey] = true }
         UserDefaults.standard.register(defaults: defaults)

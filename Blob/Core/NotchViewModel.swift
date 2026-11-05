@@ -139,6 +139,17 @@ final class NotchViewModel: ObservableObject {
         onLayoutChange?()
     }
 
+    /// When pinned, the open notch stays open after the cursor leaves or you click elsewhere.
+    var isPinned: Bool { Prefs.bool(Prefs.stayOpen) }
+
+    func togglePin() {
+        UserDefaults.standard.set(!isPinned, forKey: Prefs.stayOpen)
+        objectWillChange.send()
+        lastInteraction = Date()
+        // Unpinning with the cursor already away should let it close.
+        mouseMoved(to: NSEvent.mouseLocation)
+    }
+
     func select(_ tab: ModuleID) {
         withAnimation(Springs.snap) { self.tab = tab }
         lastInteraction = Date()
@@ -155,7 +166,7 @@ final class NotchViewModel: ObservableObject {
         case .peek:
             if !inside { cancelHover(); setPhase(.closed) }
         case .open:
-            if inside || isDropTargeted { cancelClose() } else { scheduleClose() }
+            if inside || isDropTargeted || isPinned { cancelClose() } else { scheduleClose() }
         }
         if inside { lastInteraction = Date() }
     }
@@ -179,7 +190,7 @@ final class NotchViewModel: ObservableObject {
         guard closeTask == nil else { return }
         closeTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(320))
-            guard let self, !Task.isCancelled, !self.isDropTargeted else { return }
+            guard let self, !Task.isCancelled, !self.isDropTargeted, !self.isPinned else { return }
             self.closeTask = nil
             self.close()
         }

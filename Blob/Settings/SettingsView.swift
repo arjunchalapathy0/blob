@@ -19,6 +19,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.claudeSounds) private var claudeSounds = true
     @AppStorage(Prefs.chargingNotice) private var chargingNotice = true
     @AppStorage(Prefs.timerSound) private var timerSound = true
+    @AppStorage(Prefs.stayOpen) private var stayOpen = false
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -48,6 +49,7 @@ struct SettingsView: View {
                             .frame(width: 56, alignment: .trailing)
                     }
                 }
+                Toggle("Stay open when the cursor leaves", isOn: $stayOpen)
                 Toggle("Haptic feedback", isOn: $haptics)
                 Toggle("Show on all displays", isOn: $allDisplays)
                 Toggle("Show over full-screen apps", isOn: $overFullScreen)

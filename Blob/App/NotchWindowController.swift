@@ -60,7 +60,7 @@ final class NotchWindowController {
             if event.keyCode == 53 { vm.close() } // esc
         case .leftMouseDown:
             dragChangeCount = NSPasteboard(name: .drag).changeCount
-            if vm.phase == .open, !local, !vm.hitRect().contains(point) { vm.close() }
+            if vm.phase == .open, !local, !vm.isPinned, !vm.hitRect().contains(point) { vm.close() }
         case .leftMouseDragged:
             let pb = NSPasteboard(name: .drag)
             if pb.changeCount != dragChangeCount, ModuleID.shelf.isEnabled,
@@ -75,8 +75,9 @@ final class NotchWindowController {
     }
 
     private func updatePassthrough() {
-        let inside = vm.hitRect().contains(NSEvent.mouseLocation)
-        let accept = vm.phase == .open || inside
+        // Only take the mouse over the notch itself, so a pinned notch never blocks
+        // clicks on whatever is underneath the rest of the transparent window.
+        let accept = vm.hitRect().contains(NSEvent.mouseLocation) || vm.isDropTargeted
         if panel.ignoresMouseEvents == accept { panel.ignoresMouseEvents = !accept }
     }
 }

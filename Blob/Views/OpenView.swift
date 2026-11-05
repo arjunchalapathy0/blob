@@ -52,6 +52,13 @@ struct OpenView: View {
                     .buttonStyle(PressStyle())
                     .help(m.title)
                 }
+                IconButton(symbol: vm.isPinned ? "pin.fill" : "pin", size: 10, active: vm.isPinned,
+                           help: vm.isPinned ? "Unpin (close when the cursor leaves)" : "Pin open") {
+                    withAnimation(Springs.wobble) { vm.togglePin() }
+                }
+                .contentTransition(.symbolEffect(.replace))
+                .rotationEffect(.degrees(vm.isPinned ? 0 : 35))
+                .animation(Springs.wobble, value: vm.isPinned)
                 IconButton(symbol: "gearshape", size: 10, help: "Settings") {
                     vm.close()
                     SettingsWindow.show()
