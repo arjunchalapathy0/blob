@@ -17,7 +17,9 @@ macOS 14+ · Apple silicon and Intel · Swift / SwiftUI · no dependencies
 | **Claude Code** | Shows when Claude is working, done, or waiting on you, per session. |
 | **Tools** | Keep awake, color picker, screenshot to clipboard, dark mode, sleep display. |
 | **Stats** | CPU, memory, network and battery with sparklines. Charger notices. |
-| **Mirror** | Camera preview before calls; runs only while the tab is open. |
+| **Ask** | Ask Claude about what's on your screen. Blob captures the display (without itself) only when you hit Enter. Needs an Anthropic API key. |
+| **Mirror** | Camera preview before calls, plus camera and microphone pickers (the mic picker sets the Mac's default input). The camera runs only while the tab is open. |
+| **Privacy lock** | Optional Touch ID (or password) lock on Clipboard, Shelf and Ask. |
 
 Every module can be switched off in Settings.
 
@@ -68,6 +70,7 @@ Blob ships outside the App Store on purpose. The App Store sandbox would block t
 | Accessibility | Catch volume/brightness keys to replace the system HUD | Settings → System HUD |
 | Calendar | Upcoming events | Calendar tab |
 | Camera | Mirror | Mirror tab |
+| Screen Recording | Ask (one screenshot per question) | Ask tab |
 | Automation (System Events, Music, Spotify) | Dark-mode toggle; AppleScript fallback for Now Playing | First use |
 
 ## How Now Playing works

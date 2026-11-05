@@ -44,6 +44,8 @@ final class NotchViewModel: ObservableObject {
             services.claude.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             services.calendar.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             services.updates.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+            services.ask.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+            services.lock.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             Timer.publish(every: 1, on: .main, in: .common).autoconnect().map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(changes)
@@ -64,7 +66,7 @@ final class NotchViewModel: ObservableObject {
 
     // MARK: - Geometry
 
-    var openSize: CGSize { CGSize(width: 680, height: notch.height + 178) }
+    var openSize: CGSize { CGSize(width: 720, height: notch.height + 178) }
 
     var closedSize: CGSize {
         CGSize(width: notch.width + 2 * activity.wingWidth, height: notch.height)
@@ -136,9 +138,17 @@ final class NotchViewModel: ObservableObject {
             wakeUntil = Date().addingTimeInterval(0.9) // stays sleepy for a moment, then wakes up
         }
         phase = new
+        if new == .open { services.lock.notchOpened() }
+        if new == .closed { services.lock.notchClosed() }
         recompute()
         onLayoutChange?()
     }
+
+    /// The Ask tab keeps the notch open while you type or wait for an answer.
+    var holdsOpen: Bool { tab == .ask && services.ask.holdsOpen }
+
+    /// The panel takes the keyboard only while the Ask tab is open.
+    var wantsKeyboard: Bool { phase == .open && tab == .ask && !services.lock.needsUnlock(.ask) }
 
     /// When pinned, the open notch stays open after the cursor leaves or you click elsewhere.
     var isPinned: Bool { Prefs.bool(Prefs.stayOpen) }
@@ -154,6 +164,7 @@ final class NotchViewModel: ObservableObject {
     func select(_ tab: ModuleID) {
         withAnimation(Springs.snap) { self.tab = tab }
         lastInteraction = Date()
+        onLayoutChange?()
     }
 
     // MARK: - Mouse
@@ -167,7 +178,7 @@ final class NotchViewModel: ObservableObject {
         case .peek:
             if !inside { cancelHover(); setPhase(.closed) }
         case .open:
-            if inside || isDropTargeted || isPinned { cancelClose() } else { scheduleClose() }
+            if inside || isDropTargeted || isPinned || holdsOpen { cancelClose() } else { scheduleClose() }
         }
         if inside { lastInteraction = Date() }
     }
@@ -191,7 +202,7 @@ final class NotchViewModel: ObservableObject {
         guard closeTask == nil else { return }
         closeTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(320))
-            guard let self, !Task.isCancelled, !self.isDropTargeted, !self.isPinned else { return }
+            guard let self, !Task.isCancelled, !self.isDropTargeted, !self.isPinned, !self.holdsOpen else { return }
             self.closeTask = nil
             self.close()
         }
@@ -241,8 +252,8 @@ final class NotchViewModel: ObservableObject {
         }
         if next != activity {
             withAnimation(Springs.snap) { activity = next }
-            onLayoutChange?()
         }
+        onLayoutChange?()
 
         let newMood = resolveMood()
         if newMood != mood { mood = newMood }
@@ -252,7 +263,7 @@ final class NotchViewModel: ObservableObject {
         let s = services
         if let wake = wakeUntil, wake > Date() { return .sleepy }
         if s.timers.ringing != nil || s.claude.aggregate == .waiting { return .alarmed }
-        if s.claude.aggregate == .working || s.updates.isUpdating { return .busy }
+        if s.claude.aggregate == .working || s.updates.isUpdating || s.ask.isBusy { return .busy }
         if s.nowPlaying.isPlaying { return .happy }
         if phase == .peek { return .curious }
         if Date().timeIntervalSince(lastInteraction) > 600 { return .sleepy }

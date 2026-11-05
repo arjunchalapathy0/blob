@@ -1,13 +1,14 @@
 import Foundation
 
 enum ModuleID: String, CaseIterable, Identifiable {
-    case nowPlaying, shelf, clipboard, calendar, timers, claude, tools, stats, camera
+    case nowPlaying, ask, shelf, clipboard, calendar, timers, claude, tools, stats, camera
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .nowPlaying: "Now Playing"
+        case .ask: "Ask"
         case .shelf: "Shelf"
         case .clipboard: "Clipboard"
         case .calendar: "Calendar"
@@ -22,6 +23,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .nowPlaying: "music.note"
+        case .ask: "eye"
         case .shelf: "tray"
         case .clipboard: "list.clipboard"
         case .calendar: "calendar"

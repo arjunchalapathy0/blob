@@ -41,7 +41,7 @@ struct OpenView: View {
                         Image(systemName: m.symbol)
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(vm.tab == m ? Theme.ink : Theme.tertiary)
-                            .frame(width: 20, height: 20)
+                            .frame(width: 18, height: 20)
                             .background {
                                 if vm.tab == m {
                                     Circle().fill(Theme.fillStrong)
@@ -81,8 +81,9 @@ struct OpenView: View {
     @ViewBuilder private var module: some View {
         switch vm.tab {
         case .nowPlaying: NowPlayingView()
-        case .shelf: ShelfView()
-        case .clipboard: ClipboardView()
+        case .ask: LockGate(module: .ask) { AskView(screen: vm.screen) }
+        case .shelf: LockGate(module: .shelf) { ShelfView() }
+        case .clipboard: LockGate(module: .clipboard) { ClipboardView() }
         case .calendar: CalendarView()
         case .timers: TimersView()
         case .claude: ClaudeView()

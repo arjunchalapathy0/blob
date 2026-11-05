@@ -17,6 +17,8 @@ final class Services: ObservableObject {
     let stats: StatsService
     let camera: CameraService
     let updates: UpdateService
+    let ask: AskService
+    let lock: LockService
 
     private init() {
         let notices = NoticeCenter()
@@ -32,6 +34,8 @@ final class Services: ObservableObject {
         stats = StatsService(notices: notices)
         camera = CameraService()
         updates = UpdateService(notices: notices)
+        ask = AskService()
+        lock = LockService()
     }
 
     func start() {
@@ -43,6 +47,7 @@ final class Services: ObservableObject {
         claude.start()
         stats.start()
         updates.start()
+        lock.start()
     }
 }
 
@@ -62,5 +67,7 @@ extension View {
             .environmentObject(s.stats)
             .environmentObject(s.camera)
             .environmentObject(s.updates)
+            .environmentObject(s.ask)
+            .environmentObject(s.lock)
     }
 }

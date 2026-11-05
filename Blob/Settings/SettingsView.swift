@@ -8,6 +8,8 @@ struct SettingsView: View {
     @EnvironmentObject private var camera: CameraService
     @EnvironmentObject private var nowPlaying: NowPlayingService
     @EnvironmentObject private var updates: UpdateService
+    @EnvironmentObject private var ask: AskService
+    @EnvironmentObject private var lock: LockService
 
     @AppStorage(Prefs.openOnHover) private var openOnHover = true
     @AppStorage(Prefs.hoverDelay) private var hoverDelay = 0.3
@@ -21,9 +23,11 @@ struct SettingsView: View {
     @AppStorage(Prefs.chargingNotice) private var chargingNotice = true
     @AppStorage(Prefs.timerSound) private var timerSound = true
     @AppStorage(Prefs.stayOpen) private var stayOpen = false
+    @AppStorage(Prefs.requireAuth) private var requireAuth = false
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
+    @State private var apiKey = ""
 
     var body: some View {
         Form {
@@ -75,6 +79,36 @@ struct SettingsView: View {
                 Text("System HUD")
             } footer: {
                 Text(hud.isActive ? "Blob is handling media keys." : "The macOS HUD is in use.")
+            }
+
+            Section {
+                LabeledContent("API key") {
+                    HStack {
+                        SecureField(ask.hasKey ? "Saved in Keychain" : "sk-ant-…", text: $apiKey)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 200)
+                        Button(apiKey.isEmpty && ask.hasKey ? "Remove" : "Save") {
+                            ask.setKey(apiKey)
+                            apiKey = ""
+                        }
+                        .disabled(apiKey.isEmpty && !ask.hasKey)
+                    }
+                }
+                PermissionRow(title: "Screen Recording", granted: ask.canCapture,
+                              detail: "Only used when you ask a question.") { ask.requestScreenAccess() }
+            } header: {
+                Text("Ask")
+            } footer: {
+                Text("Ask sends a screenshot of your screen (without Blob) and your question to Claude (\(AskService.model)) using your Anthropic API key. Get one at console.anthropic.com.")
+            }
+
+            Section {
+                Toggle("Require \(lock.biometryName) for Clipboard, Shelf and Ask", isOn: $requireAuth)
+                    .onChange(of: requireAuth) { _, _ in lock.lock() }
+            } header: {
+                Text("Privacy")
+            } footer: {
+                Text("Locks again 30 seconds after the notch closes, and whenever your Mac locks.")
             }
 
             Section("Now Playing") {
@@ -150,7 +184,10 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 480, height: 640)
-        .onAppear { claude.refreshInstallState() }
+        .onAppear {
+            claude.refreshInstallState()
+            ask.refreshPermissions()
+        }
     }
 
     private var updateStatus: String {

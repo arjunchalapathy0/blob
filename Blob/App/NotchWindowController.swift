@@ -79,5 +79,13 @@ final class NotchWindowController {
         // clicks on whatever is underneath the rest of the transparent window.
         let accept = vm.hitRect().contains(NSEvent.mouseLocation) || vm.isDropTargeted
         if panel.ignoresMouseEvents == accept { panel.ignoresMouseEvents = !accept }
+
+        // Take the keyboard for the Ask field; hand it back to the frontmost app afterwards.
+        if vm.wantsKeyboard, !panel.isKeyWindow {
+            panel.makeKey()
+        } else if !vm.wantsKeyboard, panel.isKeyWindow {
+            panel.orderOut(nil)
+            panel.orderFrontRegardless()
+        }
     }
 }
