@@ -19,6 +19,7 @@ final class Services: ObservableObject {
     let updates: UpdateService
     let ask: AskService
     let lock: LockService
+    let phoneBridge = PhoneBridge()
 
     private init() {
         let notices = NoticeCenter()
@@ -48,6 +49,7 @@ final class Services: ObservableObject {
         stats.start()
         updates.start()
         lock.start()
+        phoneBridge.start(claude: claude)
     }
 }
 

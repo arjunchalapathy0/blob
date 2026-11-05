@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: app.blob
   deploymentTarget:
     macOS: "14.0"
+    iOS: "17.0"
   createIntermediateGroups: true
   developmentLanguage: en
 
@@ -24,6 +25,7 @@ targets:
       - path: Blob
         excludes:
           - "**/.DS_Store"
+      - path: Shared/Bridge.swift
     info:
       path: Blob/Info.plist
       properties:
@@ -40,6 +42,9 @@ targets:
         NSCameraUsageDescription: Blob shows a mirror when you open the Camera tab.
         NSAppleEventsUsageDescription: Blob reads and controls Music and Spotify, and can toggle dark mode.
         BlobSourcePath: $(PROJECT_DIR)
+        NSLocalNetworkUsageDescription: Blob shares Claude Code status with Blob on your iPhone.
+        NSBonjourServices:
+          - _blob._tcp
     entitlements:
       path: Blob/Blob.entitlements
       properties:
@@ -73,3 +78,65 @@ targets:
           else
             echo "warning: MediaRemoteAdapter not vendored. Run scripts/fetch-mediaremote-adapter.sh (needed for Now Playing on macOS 15.4+)."
           fi
+
+  BlobPhone:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: iOS/BlobPhone
+      - path: Shared
+      - path: Blob/Core/Theme.swift
+      - path: Blob/Core/Springs.swift
+      - path: Blob/Core/Components.swift
+      - path: Blob/Core/Character
+      - path: Blob/Modules/Ask/Keychain.swift
+    dependencies:
+      - target: BlobIsland
+    info:
+      path: iOS/BlobPhone/Info.plist
+      properties:
+        CFBundleDisplayName: Blob
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSSupportsLiveActivities: true
+        NSLocalNetworkUsageDescription: Blob finds Blob on your Mac to show Claude Code status.
+        NSBonjourServices:
+          - _blob._tcp
+        NSCalendarsFullAccessUsageDescription: Blob counts down to your next event in the Dynamic Island.
+        NSCalendarsUsageDescription: Blob counts down to your next event in the Dynamic Island.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.blob.BlobPhone
+        PRODUCT_NAME: Blob
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+
+  BlobIsland:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: iOS/BlobIsland
+      - path: Shared/BlobActivity.swift
+      - path: Shared/BlobFace.swift
+      - path: Blob/Core/Character/Mood.swift
+    info:
+      path: iOS/BlobIsland/Info.plist
+      properties:
+        CFBundleDisplayName: Blob Island
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.blob.BlobPhone.Island
+        PRODUCT_NAME: BlobIsland
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        SKIP_INSTALL: YES

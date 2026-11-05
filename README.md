@@ -36,6 +36,17 @@ Blob is a grey rounded rectangle with two eyes, and only its motion changes:
 
 Moods blend into each other on a damped spring, so changes overshoot slightly and settle.
 
+## iPhone: Blob Island
+
+The same project also builds a small iPhone app (iOS 17+). iOS doesn't let apps replace the Dynamic Island, so it uses Live Activities:
+
+- **Timers**: count down in the Dynamic Island and on the Lock Screen, with a notification at the end.
+- **Today**: tap **Island** on an event to count down to it.
+- **Ask**: choose or paste a screenshot or photo and ask Claude about it (same API key setup).
+- **Claude**: live Claude Code status from your Mac. Turn on Settings → Claude Code → **Show on iPhone** in the Mac app; both devices need to be on the same Wi-Fi. Status updates while the iPhone app is open.
+
+To install: open `Blob.xcodeproj`, choose the **BlobPhone** scheme and your iPhone as the destination, set your Team on both the **BlobPhone** and **BlobIsland** targets, and press Run. On the iPhone, trust your developer profile under Settings → General → VPN & Device Management. A free Apple account works; apps installed that way expire after 7 days, so run again from Xcode to renew.
+
 ## Build
 
 ```bash

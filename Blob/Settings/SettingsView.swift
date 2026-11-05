@@ -24,6 +24,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.timerSound) private var timerSound = true
     @AppStorage(Prefs.stayOpen) private var stayOpen = false
     @AppStorage(Prefs.requireAuth) private var requireAuth = false
+    @AppStorage(Prefs.phoneBridge) private var phoneBridge = false
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -129,6 +130,7 @@ struct SettingsView: View {
                     }
                 }
                 Toggle("Sounds when Claude finishes or needs you", isOn: $claudeSounds)
+                Toggle("Show on iPhone (same Wi-Fi)", isOn: $phoneBridge)
                 if let error = claude.lastError { Text(error).font(.caption).foregroundStyle(.secondary) }
             } header: {
                 Text("Claude Code")
