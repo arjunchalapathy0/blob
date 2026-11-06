@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         services.start()
         rebuild()
+        announceUpdateIfNeeded()
 
         NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
             .debounce(for: .milliseconds(400), scheduler: DispatchQueue.main)
@@ -29,6 +30,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         services.tools.releaseCaffeinate()
         services.nowPlaying.stop()
+    }
+
+    /// Shows "Updated to x.y.z" in the notch the first time a new version launches.
+    private func announceUpdateIfNeeded() {
+        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let key = "lastLaunchedVersion"
+        let previous = UserDefaults.standard.string(forKey: key)
+        UserDefaults.standard.set(current, forKey: key)
+        guard let previous, previous != current else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            services.notices.message("sparkles", "Updated to \(current)", duration: 4)
+        }
     }
 
     private var layoutPrefs: [Bool] { [Prefs.bool(Prefs.allDisplays)] }
