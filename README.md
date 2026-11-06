@@ -19,6 +19,7 @@ macOS 14+ · Apple silicon and Intel · Swift / SwiftUI · no dependencies
 | **Stats** | CPU, memory, network and battery with sparklines. Charger notices. |
 | **Ask** | Ask Claude about what's on your screen. Blob captures the display (without itself) only when you hit Enter. Needs an Anthropic API key. |
 | **Mirror** | Camera preview before calls, plus camera and microphone pickers (the mic picker sets the Mac's default input). The camera runs only while the tab is open. |
+| **Voice agent** | Hold **right ⌥**, say what you want, let go. Whisper (WhisperKit, on-device) transcribes it, and Claude Code (your subscription) does it: runs commands, controls apps with AppleScript, opens things, looks at your screen. It asks before deleting, sending or buying. Typing in the Ask tab works the same way. |
 | **Privacy lock** | Optional Touch ID (or password) lock on Clipboard, Shelf and Ask. |
 
 Every module can be switched off in Settings.
@@ -46,6 +47,8 @@ The same project also builds a small iPhone app (iOS 17+). iOS doesn't let apps 
 - **Claude**: live Claude Code status from your Mac. Turn on Settings → Claude Code → **Show on iPhone** in the Mac app; both devices need to be on the same Wi-Fi. Status updates while the iPhone app is open.
 
 **Without Xcode (SideStore):** every push to `main` builds `Blob.ipa` on GitHub Actions and attaches it to the **phone-latest** release. Set up [SideStore](https://sidestore.io) once (this step needs a computer). After that, open the release page on your iPhone, download `Blob.ipa`, and share it to SideStore. SideStore signs it with your Apple ID and refreshes it every 7 days from the phone.
+
+**Quick update:** Blob Settings → Updates → **Update iPhone** (after updating the Mac app), or `git pull && ./scripts/phone.sh`. It builds and installs over the cable or Wi-Fi, and also renews the 7-day limit.
 
 To install with Xcode: open `Blob.xcodeproj`, choose the **BlobPhone** scheme and your iPhone as the destination, set your Team on both the **BlobPhone** and **BlobIsland** targets, and press Run. On the iPhone, trust your developer profile under Settings → General → VPN & Device Management. A free Apple account works; apps installed that way expire after 7 days, so run again from Xcode to renew.
 

@@ -4,6 +4,7 @@ import SwiftUI
 struct OpenView: View {
     @ObservedObject var vm: NotchViewModel
     @EnvironmentObject private var updates: UpdateService
+    @EnvironmentObject private var ask: AskService
     @Namespace private var tabNS
 
     var body: some View {
@@ -81,7 +82,9 @@ struct OpenView: View {
     @ViewBuilder private var module: some View {
         switch vm.tab {
         case .nowPlaying: NowPlayingView()
-        case .ask: LockGate(module: .ask) { AskView(screen: vm.screen) }
+        case .ask: LockGate(module: .ask) {
+            if ask.cliPath != nil { AgentView() } else { AskView(screen: vm.screen) }
+        }
         case .shelf: LockGate(module: .shelf) { ShelfView() }
         case .clipboard: LockGate(module: .clipboard) { ClipboardView() }
         case .calendar: CalendarView()

@@ -63,6 +63,7 @@ struct TimersScreen: View {
             .padding(20)
         }
         .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in timers.sweep() }
+        .sensoryFeedback(.impact(weight: .medium), trigger: timers.timers.count)
     }
 }
 

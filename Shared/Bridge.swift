@@ -3,7 +3,7 @@ import Foundation
 /// The protocol between Blob on the Mac and Blob on iPhone over the local network
 /// (Bonjour + TCP, one JSON object per line).
 ///
-/// iPhone → Mac:  hello {code}, ask {id, question, image (base64 JPEG)}
+/// iPhone → Mac:  hello {code}, ask {id, question, image (base64 JPEG)}, task {id, text}
 /// Mac → iPhone:  snapshot {host, sessions}, denied, askEvent {id, event, text}
 ///
 /// Nothing is sent until the phone says hello with the pairing code shown in the Mac's Settings.
@@ -18,11 +18,12 @@ enum Bridge {
         var updated: Date
     }
 
-    enum AskEvent: String { case reset, text, final, error }
+    enum AskEvent: String { case reset, text, final, error, step }
 
     enum Message {
         case hello(code: String)
         case ask(id: String, question: String, image: String)
+        case task(id: String, text: String)
         case snapshot(host: String, sessions: [Session])
         case denied
         case askEvent(id: String, event: AskEvent, text: String)
@@ -35,6 +36,8 @@ enum Bridge {
             obj = ["type": "hello", "code": code]
         case .ask(let id, let question, let image):
             obj = ["type": "ask", "id": id, "question": question, "image": image]
+        case .task(let id, let text):
+            obj = ["type": "task", "id": id, "text": text]
         case .snapshot(let host, let sessions):
             obj = ["type": "snapshot", "host": host, "sessions": sessions.map {
                 ["id": $0.id, "project": $0.project, "state": $0.state, "detail": $0.detail,
@@ -59,6 +62,9 @@ enum Bridge {
             guard let id = obj["id"] as? String, let q = obj["question"] as? String, let img = obj["image"] as? String
             else { return nil }
             return .ask(id: id, question: q, image: img)
+        case "task":
+            guard let id = obj["id"] as? String, let text = obj["text"] as? String else { return nil }
+            return .task(id: id, text: text)
         case "snapshot":
             let sessions = (obj["sessions"] as? [[String: Any]] ?? []).compactMap { s -> Session? in
                 guard let id = s["id"] as? String else { return nil }

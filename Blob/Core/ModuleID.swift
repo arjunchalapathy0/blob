@@ -23,7 +23,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .nowPlaying: "music.note"
-        case .ask: "eye"
+        case .ask: "waveform"
         case .shelf: "tray"
         case .clipboard: "list.clipboard"
         case .calendar: "calendar"

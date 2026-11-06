@@ -20,6 +20,7 @@ final class Services: ObservableObject {
     let ask: AskService
     let lock: LockService
     let phoneBridge = PhoneBridge()
+    let agent: AgentService
 
     private init() {
         let notices = NoticeCenter()
@@ -37,6 +38,7 @@ final class Services: ObservableObject {
         updates = UpdateService(notices: notices)
         ask = AskService()
         lock = LockService()
+        agent = AgentService(notices: notices, ask: ask)
     }
 
     func start() {
@@ -49,7 +51,8 @@ final class Services: ObservableObject {
         stats.start()
         updates.start()
         lock.start()
-        phoneBridge.start(claude: claude, ask: ask)
+        agent.start()
+        phoneBridge.start(claude: claude, ask: ask, agent: agent)
     }
 }
 
@@ -72,5 +75,6 @@ extension View {
             .environmentObject(s.ask)
             .environmentObject(s.lock)
             .environmentObject(s.phoneBridge)
+            .environmentObject(s.agent)
     }
 }

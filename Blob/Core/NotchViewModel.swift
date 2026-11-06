@@ -45,6 +45,7 @@ final class NotchViewModel: ObservableObject {
             services.calendar.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             services.updates.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             services.ask.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+            services.agent.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             services.lock.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             Timer.publish(every: 1, on: .main, in: .common).autoconnect().map { _ in () }.eraseToAnyPublisher(),
         ]
@@ -145,7 +146,7 @@ final class NotchViewModel: ObservableObject {
     }
 
     /// The Ask tab keeps the notch open while you type or wait for an answer.
-    var holdsOpen: Bool { tab == .ask && services.ask.holdsOpen }
+    var holdsOpen: Bool { tab == .ask && (services.ask.holdsOpen || services.agent.isBusy) }
 
     /// The panel takes the keyboard only while the Ask tab is open.
     var wantsKeyboard: Bool { phase == .open && tab == .ask && !services.lock.needsUnlock(.ask) }
@@ -235,7 +236,9 @@ final class NotchViewModel: ObservableObject {
     private func recompute() {
         let s = services
         var next: LiveActivity = .none
-        if let notice = s.notices.current {
+        if [.listening, .transcribing, .working].contains(s.agent.phase) {
+            next = .agent(s.agent.phase)
+        } else if let notice = s.notices.current {
             next = .notice(notice)
         } else if ModuleID.timers.isEnabled, s.timers.ringing != nil {
             next = .timerDone
@@ -262,6 +265,8 @@ final class NotchViewModel: ObservableObject {
     private func resolveMood() -> Mood {
         let s = services
         if let wake = wakeUntil, wake > Date() { return .sleepy }
+        if s.agent.phase == .listening { return .curious }
+        if s.agent.phase == .transcribing || s.agent.phase == .working { return .busy }
         if s.timers.ringing != nil || s.claude.aggregate == .waiting { return .alarmed }
         if s.claude.aggregate == .working || s.updates.isUpdating || s.ask.isBusy { return .busy }
         if s.nowPlaying.isPlaying { return .happy }

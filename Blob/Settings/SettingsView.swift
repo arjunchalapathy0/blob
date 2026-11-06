@@ -11,6 +11,7 @@ struct SettingsView: View {
     @EnvironmentObject private var ask: AskService
     @EnvironmentObject private var lock: LockService
     @EnvironmentObject private var phoneBridge: PhoneBridge
+    @EnvironmentObject private var agent: AgentService
 
     @AppStorage(Prefs.openOnHover) private var openOnHover = true
     @AppStorage(Prefs.hoverDelay) private var hoverDelay = 0.3
@@ -26,6 +27,8 @@ struct SettingsView: View {
     @AppStorage(Prefs.stayOpen) private var stayOpen = false
     @AppStorage(Prefs.requireAuth) private var requireAuth = false
     @AppStorage(Prefs.phoneBridge) private var phoneBridgeOn = false
+    @AppStorage(Prefs.voiceKey) private var voiceKey = true
+    @AppStorage(Prefs.phoneTasks) private var phoneTasks = true
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -110,6 +113,28 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle("Hold right ⌥ to talk to Blob", isOn: $voiceKey)
+                PermissionRow(title: "Microphone", granted: agent.micAllowed,
+                              detail: "Only records while you hold the key.") { agent.requestMic() }
+                LabeledContent("Speech (Whisper, on this Mac)") {
+                    HStack {
+                        Text(agent.whisperStatus).foregroundStyle(.secondary).lineLimit(1)
+                        if agent.whisperStatus != "Ready" {
+                            Button("Get ready") { Task { await agent.warmUp() } }
+                        }
+                    }
+                }
+                LabeledContent("Does things with") {
+                    Text(ask.usesSubscription ? "Claude Code (your subscription)" : "Claude Code isn’t installed")
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Voice & agent")
+            } footer: {
+                Text("Blob can run commands, control apps and look at your screen to do what you ask. It stops and asks before deleting, sending or buying anything, and never uses sudo. Accessibility access is needed for the key.")
+            }
+
+            Section {
                 Toggle("Require \(lock.biometryName) for Clipboard, Shelf and Ask", isOn: $requireAuth)
                     .onChange(of: requireAuth) { _, _ in lock.lock() }
             } header: {
@@ -147,6 +172,7 @@ struct SettingsView: View {
                             Button("New code") { phoneBridge.resetCode() }
                         }
                     }
+                    Toggle("Let iPhone ask this Mac to do things", isOn: $phoneTasks)
                 }
                 if let error = claude.lastError { Text(error).font(.caption).foregroundStyle(.secondary) }
             } header: {
@@ -170,6 +196,13 @@ struct SettingsView: View {
                             Button("Check now") { Task { await updates.check() } }
                                 .disabled(updates.isUpdating || updates.state == .checking)
                         }
+                    }
+                }
+                LabeledContent("iPhone") {
+                    HStack {
+                        Text(updates.phoneStatus ?? "Plug in or same Wi-Fi").foregroundStyle(.secondary).lineLimit(1)
+                        Button(updates.isUpdatingPhone ? "Installing…" : "Update iPhone") { updates.updatePhone() }
+                            .disabled(updates.isUpdatingPhone)
                     }
                 }
                 LabeledContent("Source folder") {

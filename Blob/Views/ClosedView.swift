@@ -42,6 +42,7 @@ struct WingView: View {
     @EnvironmentObject private var timers: TimerService
     @EnvironmentObject private var claude: ClaudeService
     @EnvironmentObject private var calendar: CalendarService
+    @EnvironmentObject private var agent: AgentService
     @AppStorage(Prefs.monochromeArtwork) private var monoArt = false
 
     var body: some View {
@@ -57,6 +58,21 @@ struct WingView: View {
         switch (activity, side) {
         case (.none, _):
             EmptyView()
+
+        case (.agent(let phase), .leading):
+            if phase == .listening {
+                Image(systemName: "mic.fill").font(.system(size: 12, weight: .semibold))
+            } else {
+                BlobCharacter(mood: .busy, size: 13)
+            }
+        case (.agent(let phase), .trailing):
+            switch phase {
+            case .listening: VoiceLevel(level: agent.level).frame(height: 14)
+            case .transcribing: Text("…")
+            default:
+                Text(agent.currentStep).font(Theme.font(11, .semibold)).foregroundStyle(Theme.secondary)
+                    .frame(maxWidth: 130, alignment: .trailing)
+            }
 
         case (.music, .leading):
             Artwork(image: nowPlaying.artwork, size: 20, radius: 6, mono: monoArt)

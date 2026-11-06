@@ -141,6 +141,7 @@ final class AskService: ObservableObject {
             case .text(let text): self.answer += text
             case .final(let text): self.answer = text
             case .failure(let message): failure = message
+            default: break
             }
         }
         if let failure, answer.isEmpty { throw AskError.message(failure) }

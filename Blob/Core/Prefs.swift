@@ -15,6 +15,8 @@ enum Prefs {
     static let stayOpen = "stayOpen"
     static let requireAuth = "requireAuth"
     static let phoneBridge = "phoneBridge"
+    static let voiceKey = "voiceKey"
+    static let phoneTasks = "phoneTasks"
     static let selectedCamera = "selectedCamera"
 
     static func registerDefaults() {
@@ -33,6 +35,8 @@ enum Prefs {
             stayOpen: false,
             requireAuth: false,
             phoneBridge: false,
+            voiceKey: true,
+            phoneTasks: true,
         ]
         for module in ModuleID.allCases { defaults[module.prefKey] = true }
         UserDefaults.standard.register(defaults: defaults)

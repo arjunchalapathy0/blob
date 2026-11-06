@@ -25,6 +25,8 @@ final class PhoneBridge: ObservableObject {
     private var bag = Set<AnyCancellable>()
     private let queue = DispatchQueue(label: "blob.phonebridge")
     private weak var ask: AskService?
+    private weak var agent: AgentService?
+    private var failedCodes: [Date] = []
 
     private static let codeKey = "phonePairingCode"
 
@@ -37,8 +39,9 @@ final class PhoneBridge: ObservableObject {
         }
     }
 
-    func start(claude: ClaudeService, ask: AskService) {
+    func start(claude: ClaudeService, ask: AskService, agent: AgentService) {
         self.ask = ask
+        self.agent = agent
         claude.$sessions
             .receive(on: DispatchQueue.main)
             .sink { [weak self] sessions in self?.publish(sessions) }
@@ -131,8 +134,12 @@ final class PhoneBridge: ObservableObject {
         guard let message = Bridge.decode(line) else { return }
         switch message {
         case .hello(let code):
-            guard code == pairingCode else {
+            // Five wrong codes in ten minutes locks pairing for the rest of that window.
+            failedCodes.removeAll { Date().timeIntervalSince($0) > 600 }
+            guard failedCodes.count < 5, code == pairingCode else {
+                if code != pairingCode { failedCodes.append(Date()) }
                 send(.denied, to: client)
+                client.connection.cancel()
                 return
             }
             client.authorized = true
@@ -142,6 +149,29 @@ final class PhoneBridge: ObservableObject {
         case .ask(let id, let question, let image):
             guard client.authorized else { send(.denied, to: client); return }
             client.tasks[id] = Task { await self.answer(id: id, question: question, image: image, for: client) }
+
+        case .task(let id, let text):
+            guard client.authorized else { send(.denied, to: client); return }
+            func reply(_ event: Bridge.AskEvent, _ text: String = "") { send(.askEvent(id: id, event: event, text: text), to: client) }
+            guard Prefs.bool(Prefs.phoneTasks) else {
+                reply(.error, "Turn on “Let iPhone ask this Mac to do things” in Blob’s Settings on your Mac.")
+                return
+            }
+            guard let agent, !agent.isBusy else {
+                reply(.error, "Blob on your Mac is busy. Try again in a moment.")
+                return
+            }
+            var sentFinal = false
+            agent.run(text) { event in
+                switch event {
+                case .reset: reply(.reset)
+                case .text(let t): reply(.text, t)
+                case .step(let s): reply(.step, s)
+                case .final(let t): sentFinal = true; reply(.final, t)
+                case .failure(let m): if !sentFinal { reply(.error, m) }
+                case .session: break
+                }
+            }
 
         default:
             break
@@ -173,6 +203,7 @@ final class PhoneBridge: ObservableObject {
                 case .text(let t): reply(.text, t)
                 case .final(let t): sentFinal = true; reply(.final, t)
                 case .failure(let m): if !sentFinal { reply(.error, m) }
+                default: break
                 }
             }
         } catch is CancellationError {

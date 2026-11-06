@@ -131,6 +131,15 @@ final class MacLink: ObservableObject {
 
     func cancelAsk(_ id: String) { askHandlers[id] = nil }
 
+    /// Asks Blob on the Mac to do something (it runs Claude Code there).
+    func task(_ text: String, onEvent: @escaping (Bridge.AskEvent, String) -> Void) -> String? {
+        guard isConnected, connection != nil else { return nil }
+        let id = UUID().uuidString
+        askHandlers[id] = onEvent
+        send(.task(id: id, text: text))
+        return id
+    }
+
     // MARK: - Lock Screen / Dynamic Island
 
     var showsInIsland: Bool {

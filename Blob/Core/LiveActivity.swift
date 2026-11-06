@@ -3,6 +3,7 @@ import CoreGraphics
 /// What the closed notch is showing in its wings, in priority order.
 enum LiveActivity: Equatable {
     case none
+    case agent(AgentService.Phase)
     case notice(Notice)
     case timerDone
     case claude(ClaudeState)
@@ -13,6 +14,7 @@ enum LiveActivity: Equatable {
     var wingWidth: CGFloat {
         switch self {
         case .none: 0
+        case .agent(let phase): phase == .working ? 150 : 66
         case .notice(let n): n.kind.wingWidth
         case .timerDone: 76
         case .claude: 86
@@ -26,6 +28,7 @@ enum LiveActivity: Equatable {
     var category: String {
         switch self {
         case .none: "none"
+        case .agent(let phase): "agent.\(phase.rawValue)"
         case .notice(let n): n.kind.category
         case .timerDone: "timerDone"
         case .claude(let s): "claude.\(s.rawValue)"

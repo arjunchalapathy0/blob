@@ -55,6 +55,7 @@ final class AskModel: ObservableObject {
                 case .text: self.answer += text
                 case .final: self.answer = text; self.finish()
                 case .error: if self.answer.isEmpty { self.error = text }; self.finish()
+                case .step: break
                 }
             }
             if macAskID == nil { error = "Couldn’t reach your Mac."; isBusy = false }

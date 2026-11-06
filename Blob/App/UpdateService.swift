@@ -17,6 +17,8 @@ final class UpdateService: ObservableObject {
 
     @Published private(set) var state: State = .idle
     @Published private(set) var lastChecked: Date?
+    @Published private(set) var phoneStatus: String?
+    @Published private(set) var isUpdatingPhone = false
 
     private let notices: NoticeCenter
     private var timer: Timer?
@@ -99,6 +101,31 @@ final class UpdateService: ObservableObject {
         }
     }
 
+    /// Builds the iPhone app from the source folder and installs it on the paired iPhone.
+    /// Use after a Mac update (which pulls the latest code), or any time to renew the 7-day limit.
+    func updatePhone() {
+        guard !isUpdatingPhone, let source = sourceURL else { return }
+        guard FileManager.default.fileExists(atPath: source.appendingPathComponent("scripts/phone.sh").path) else {
+            phoneStatus = "Update the Mac app first."
+            return
+        }
+        isUpdatingPhone = true
+        phoneStatus = "Building for iPhone…"
+        notices.message("iphone", "Updating iPhone…", duration: 600)
+        Task {
+            let result = await Self.run(source, ["phone"], script: "scripts/phone.sh")
+            isUpdatingPhone = false
+            if result.status == 0 {
+                phoneStatus = "Installed \(Date().formatted(date: .omitted, time: .shortened))"
+                notices.message("iphone", "iPhone updated", duration: 3)
+            } else {
+                let line = result.output.split(separator: "\n").map(String.init).first { $0.contains("error") }
+                phoneStatus = line.map { $0.replacingOccurrences(of: "error: ", with: "") } ?? "Couldn’t install."
+                notices.message("exclamationmark.triangle.fill", "iPhone update failed", duration: 3)
+            }
+        }
+    }
+
     /// Hands off to a detached script that waits for Blob to quit, swaps the app and reopens it.
     private func install(_ newApp: String, from source: URL) {
         let current = Bundle.main.bundlePath
@@ -129,17 +156,17 @@ final class UpdateService: ObservableObject {
             .write(to: file, atomically: true, encoding: .utf8)
     }
 
-    private static func run(_ source: URL, _ args: [String]) async -> (status: Int32, output: String) {
+    private static func run(_ source: URL, _ args: [String], script name: String = "scripts/update.sh") async -> (status: Int32, output: String) {
         // Run a copy (next to the original, so it finds the project): `git pull` may rewrite
         // update.sh while it's running, and bash reads scripts as it goes.
-        let original = source.appendingPathComponent("scripts/update.sh")
+        let original = source.appendingPathComponent(name)
         let copy = source.appendingPathComponent("scripts/.update-run-\(UUID().uuidString).sh")
         let script = (try? FileManager.default.copyItem(at: original, to: copy)) != nil ? copy : original
         defer { if script == copy { try? FileManager.default.removeItem(at: copy) } }
         return await withCheckedContinuation { continuation in
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/bin/bash")
-            p.arguments = [script.path] + args
+            p.arguments = [script.path] + (name.hasSuffix("update.sh") ? args : [])
             p.currentDirectoryURL = source
             let pipe = Pipe()
             p.standardOutput = pipe
