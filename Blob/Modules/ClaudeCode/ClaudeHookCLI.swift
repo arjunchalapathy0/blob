@@ -10,6 +10,8 @@ enum ClaudeHookCLI {
     }
 
     static func run() {
+        // Ask runs Claude Code itself; don't show those runs as sessions.
+        if ProcessInfo.processInfo.environment["BLOB_ASK"] != nil { return }
         let input = FileHandle.standardInput.readDataToEndOfFile()
         guard let json = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any],
               let sessionID = json["session_id"] as? String, !sessionID.isEmpty else { return }

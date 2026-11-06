@@ -7,9 +7,9 @@ struct AskView: View {
 
     var body: some View {
         Group {
-            if !ask.hasKey {
+            if !ask.isReady {
                 EmptyState(text: "Ask about your screen",
-                           detail: "Add an Anthropic API key in Settings to ask Claude about what you see.",
+                           detail: "Install Claude Code and sign in to use your Claude subscription, or add an API key in Settings.",
                            mood: .curious, actionTitle: "Open Settings") { SettingsWindow.show() }
             } else if !ask.canCapture {
                 EmptyState(text: "Let Blob see your screen",

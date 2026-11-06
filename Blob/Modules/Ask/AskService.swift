@@ -13,6 +13,8 @@ final class AskService: ObservableObject {
     @Published private(set) var error: String?
     @Published private(set) var hasKey = Keychain.read() != nil
     @Published private(set) var canCapture = CGPreflightScreenCaptureAccess()
+    /// Path to Claude Code, used to answer with the user's Claude subscription.
+    @Published private(set) var cliPath: String?
 
     private var task: Task<Void, Never>?
 
@@ -22,6 +24,12 @@ final class AskService: ObservableObject {
     var holdsOpen: Bool { isBusy || !question.isEmpty }
 
     var hasResult: Bool { !answer.isEmpty || error != nil || isBusy }
+
+    /// Claude Code (subscription) is preferred; an API key is the fallback.
+    var usesSubscription: Bool { cliPath != nil }
+    var isReady: Bool { cliPath != nil || hasKey }
+
+    init() { refreshPermissions() }
 
     func setKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -41,6 +49,10 @@ final class AskService: ObservableObject {
     func refreshPermissions() {
         canCapture = CGPreflightScreenCaptureAccess()
         hasKey = Keychain.read() != nil
+        Task.detached(priority: .utility) {
+            let path = ClaudeCLI.locate()
+            await MainActor.run { self.cliPath = path }
+        }
     }
 
     func clear() {
@@ -59,7 +71,9 @@ final class AskService: ObservableObject {
 
     func ask(on screen: NSScreen) {
         let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty, !isBusy, let key = Keychain.read() else { return }
+        let cli = cliPath
+        let key = Keychain.read()
+        guard !q.isEmpty, !isBusy, cli != nil || key != nil else { return }
         cancel()
         question = ""
         askedQuestion = q
@@ -75,7 +89,11 @@ final class AskService: ObservableObject {
                     .representation(using: .jpeg, properties: [.compressionFactor: 0.8]) else {
                     throw AskError.message("Couldn’t encode the screenshot.")
                 }
-                try await stream(question: q, jpeg: jpeg, key: key)
+                if let cli {
+                    try await askSubscription(cli: cli, question: q, jpeg: jpeg)
+                } else if let key {
+                    try await stream(question: q, jpeg: jpeg, key: key)
+                }
             } catch is CancellationError {
             } catch AskError.message(let text) {
                 error = text
@@ -105,7 +123,30 @@ final class AskService: ObservableObject {
         return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
     }
 
-    // MARK: - Claude
+    // MARK: - Claude subscription (Claude Code)
+
+    private func askSubscription(cli: String, question: String, jpeg: Data) async throws {
+        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Blob/Ask", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appendingPathComponent("screen-\(UUID().uuidString).jpg")
+        try jpeg.write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+
+        var failure: String?
+        try await ClaudeCLI.ask(cli: cli, imagePath: file.path, question: question, workingDirectory: dir) { [weak self] event in
+            guard let self else { return }
+            switch event {
+            case .reset: self.answer = ""
+            case .text(let text): self.answer += text
+            case .final(let text): self.answer = text
+            case .failure(let message): failure = message
+            }
+        }
+        if let failure, answer.isEmpty { throw AskError.message(failure) }
+    }
+
+    // MARK: - Claude API (API key)
 
     private func stream(question: String, jpeg: Data, key: String) async throws {
         var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)

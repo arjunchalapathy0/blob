@@ -83,7 +83,12 @@ struct SettingsView: View {
             }
 
             Section {
-                LabeledContent("API key") {
+                LabeledContent("Answers with") {
+                    Text(ask.usesSubscription ? "Your Claude subscription (Claude Code)"
+                         : ask.hasKey ? "API key" : "Not set up")
+                        .foregroundStyle(.secondary)
+                }
+                LabeledContent("API key (optional)") {
                     HStack {
                         SecureField(ask.hasKey ? "Saved in Keychain" : "sk-ant-…", text: $apiKey)
                             .textFieldStyle(.roundedBorder)
@@ -100,7 +105,7 @@ struct SettingsView: View {
             } header: {
                 Text("Ask")
             } footer: {
-                Text("Ask sends a screenshot of your screen (without Blob) and your question to Claude (\(AskService.model)) using your Anthropic API key. Get one at console.anthropic.com.")
+                Text("Ask sends a screenshot of your screen (without Blob) and your question to Claude. With Claude Code installed and signed in, it uses your Claude subscription. Questions count toward your plan's usage. Otherwise it uses an API key.")
             }
 
             Section {
