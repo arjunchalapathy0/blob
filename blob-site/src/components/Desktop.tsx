@@ -7,8 +7,6 @@ import { Glyph } from "./Glyph";
 import { useSpringIn } from "@/lib/useSpring";
 import { Spring, Springs } from "@/lib/spring";
 import { reducedMotion, subscribe } from "@/lib/ticker";
-import { useNotch } from "@/lib/notch";
-import { displayMood } from "./Notch";
 
 /** What's on the desktop. Each request or scene changes a few of these. */
 export type DesktopState = {
@@ -126,7 +124,6 @@ export function Desktop({ s, label }: { s: DesktopState; label: string }) {
 
   return (
     <div className="stage" role="img" aria-label={label}>
-      <Wallpaper />
 
       <Win shown={s.terminal !== "hidden" ? 1 : 0} className="w-terminal" title="Terminal" preset={Springs.soft} y={18}>
         {s.terminal === "port" && (
@@ -197,16 +194,6 @@ export function Desktop({ s, label }: { s: DesktopState; label: string }) {
       </div>
 
       <div ref={scan} className="scan" aria-hidden="true" />
-    </div>
-  );
-}
-
-/** The desktop picture: Blob, engraved into the screen, feeling whatever the notch feels. */
-function Wallpaper() {
-  const s = useNotch();
-  return (
-    <div className="wallpaper" aria-hidden="true">
-      <BlobFigure mood={displayMood(s)} size={120} look="pointer" className="engraved" />
     </div>
   );
 }

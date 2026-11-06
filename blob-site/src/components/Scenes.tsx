@@ -7,12 +7,16 @@ import { releaseNotch, setAgent, setNotch, takeNotch } from "@/lib/notch";
 import { SCENES } from "@/lib/requests";
 import { reducedMotion, subscribe } from "@/lib/ticker";
 import { site } from "@/lib/site";
+import { Notch } from "./Notch";
+import { useNotchScale } from "@/lib/useNotchScale";
 
 type Scene = {
   id: string;
   title: string;
   body: string;
   desk: Partial<DesktopState>;
+  /** How Blob, perched on the title, feels about it. */
+  mood: string;
 };
 
 const LIST: Scene[] = [
@@ -21,30 +25,35 @@ const LIST: Scene[] = [
     title: "Something to focus to.",
     body: "Say it the way you’d say it to a person. Blob opens Music, picks something, and hops along in the notch for as long as it plays.",
     desk: { terminal: "hidden" },
+    mood: "happy",
   },
   {
     id: "see",
     title: "It reads your screen when you ask.",
     body: "Ask why the build is failing and Blob takes one screenshot, reads it, and answers in a sentence. It looks when you ask, not before.",
     desk: { terminal: "build" },
+    mood: "busy",
   },
   {
     id: "shortcut",
     title: "Your shortcuts, by name.",
     body: "Anything you’ve built in Shortcuts, Blob can run. “Start my day” is a lot shorter than opening four apps.",
     desk: { terminal: "hidden" },
+    mood: "busy",
   },
   {
     id: "asks",
     title: "It asks before it deletes.",
     body: "Deleting, emptying the trash, sending a message, buying something: Blob says exactly what it would do and waits for a yes. It never uses sudo and never touches your passwords.",
     desk: { terminal: "hidden", downloads: true },
+    mood: "curious",
   },
   {
     id: "claude",
     title: "It keeps an eye on Claude Code.",
     body: "While Claude works in your terminal, the notch says so. When it stops to ask you something, Blob jumps, so you can look away in the meantime.",
     desk: { terminal: "claude" },
+    mood: "notch",
   },
 ];
 
@@ -53,6 +62,7 @@ export function Scenes() {
   const stageWrap = useRef<HTMLDivElement>(null);
   const copies = useRef<(HTMLDivElement | null)[]>([]);
   const [index, setIndex] = useState(-1);
+  const notchScale = useNotchScale(0.86, 0.5);
   const [desk, setDesk] = useState<DesktopState>({ ...EMPTY_DESKTOP, terminal: "hidden", trashBadge: false });
   const abort = useRef<AbortController | null>(null);
   const indexRef = useRef(-1);
@@ -161,6 +171,7 @@ export function Scenes() {
     copies.current.forEach((c, i) => {
       if (!c) return;
       c.dataset.state = i === Math.max(0, index) ? "on" : i < index ? "past" : "next";
+      c.toggleAttribute("data-blob-off", i !== index);
     });
   }, [index]);
 
@@ -179,8 +190,14 @@ export function Scenes() {
                   ref={(n) => {
                     copies.current[i] = n;
                   }}
-                  className="scene-copy"
+                  className="scene-copy blob-anchor"
                   data-state={i === 0 ? "on" : "next"}
+                  data-blob="sit"
+                  data-blob-size="128"
+                  data-blob-x="0.14"
+                  data-blob-mood={s.mood}
+                  data-blob-priority="200"
+                  data-blob-off=""
                   aria-hidden={i !== Math.max(0, index)}
                 >
                   <span className="scene-n" aria-hidden="true">{i + 1}</span>
@@ -194,7 +211,12 @@ export function Scenes() {
             </div>
           </div>
           <div className="scenes-stage" ref={stageWrap}>
-            <Desktop s={desk} label={index >= 0 ? `Scene ${index + 1}: ${LIST[index].title}` : "Scenes"} />
+            <div className="mac small">
+              <div className="mac-screen">
+                <Notch scale={notchScale} label="The notch during this scene" />
+                <Desktop s={desk} label={index >= 0 ? `Scene ${index + 1}: ${LIST[index].title}` : "Scenes"} />
+              </div>
+            </div>
           </div>
         </div>
       </div>

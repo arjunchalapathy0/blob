@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Notch } from "./Notch";
+import { useNotchScale } from "@/lib/useNotchScale";
 import { releaseNotch, setNotch, takeNotch, type Wing } from "@/lib/notch";
 import type { Mood } from "@/lib/mood";
 
@@ -23,6 +25,7 @@ const ITEMS: Item[] = [
 
 export function Everything() {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scale = useNotchScale(1.1, 0.42);
 
   const show = (item: Item) => {
     takeNotch("index", () => timer.current && clearInterval(timer.current));
@@ -48,14 +51,17 @@ export function Everything() {
   }, []);
 
   return (
-    <section id="everything" className="section everything" data-mood="curious" aria-labelledby="everything-title">
-      <div className="wrap">
-        <div className="section-head">
-          <h2 id="everything-title" className="h2">Everything else that lives up there.</h2>
-          <p className="body">
-            Point at any of these and the notch above will show you what it looks like. Each one can be switched off in
-            Settings.
-          </p>
+    <section id="everything" className="section everything" aria-labelledby="everything-title">
+      <div className="wrap everything-grid">
+        <div className="everything-side">
+          <h2 id="everything-title" className="h2">And it does all this, too.</h2>
+          <p className="body">Point at one and the notch shows you. Every one of them can be switched off.</p>
+          <div className="mac small sticky-mac">
+            <div className="blob-anchor" data-blob="sit" data-blob-size="84" data-blob-x="0.82" data-blob-mood="notch" />
+            <div className="mac-screen short">
+              <Notch scale={scale} label="The notch, showing the feature you point at" />
+            </div>
+          </div>
         </div>
         <ul className="index" onPointerLeave={hide}>
           {ITEMS.map((it) => (

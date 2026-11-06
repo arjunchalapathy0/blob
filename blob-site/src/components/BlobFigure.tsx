@@ -20,11 +20,13 @@ type Props = {
   label?: string;
   /** Pause when hidden (e.g. inside the closed notch's panel). */
   active?: boolean;
+  /** Supplies the look direction directly (for a Blob that moves around). */
+  lookRef?: { current: { x: number; y: number } };
 };
 
 const BODY = squirclePath(0.09, 0.2, 1.12, 1, 0.36);
 
-export function BlobFigure({ mood, size, look = "pointer", className, label, active = true }: Props) {
+export function BlobFigure({ mood, size, look = "pointer", className, label, active = true, lookRef }: Props) {
   const svg = useRef<SVGSVGElement>(null);
   const body = useRef<SVGGElement>(null);
   const eyes = useRef<SVGGElement>(null);
@@ -72,7 +74,10 @@ export function BlobFigure({ mood, size, look = "pointer", className, label, act
 
       let lx = 0;
       let ly = 0;
-      if (look === "notch") {
+      if (lookRef) {
+        lx = lookRef.current.x;
+        ly = lookRef.current.y;
+      } else if (look === "notch") {
         lx = live.lookX;
         ly = live.lookY + live.scrollLook;
       } else if (look === "pointer") {
@@ -120,7 +125,7 @@ export function BlobFigure({ mood, size, look = "pointer", className, label, act
       unsub();
       io.disconnect();
     };
-  }, [look]);
+  }, [look, lookRef]);
 
   return (
     <svg

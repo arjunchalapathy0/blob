@@ -34,7 +34,7 @@ export function Phone() {
             type your Mac a task and watch it happen.
           </p>
         </div>
-        <div className="phone" role="img" aria-label="An iPhone Lock Screen with a Blob timer in the Dynamic Island">
+        <div className="phone blob-anchor" data-blob="sit" data-blob-size="90" data-blob-x="0.85" data-blob-mood="idle" role="img" aria-label="An iPhone Lock Screen with a Blob timer in the Dynamic Island">
           <div className="phone-screen">
             <div className="island">
               <BlobFigure mood="happy" size={13} look="none" />

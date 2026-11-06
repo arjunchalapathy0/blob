@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { BlobFigure } from "./BlobFigure";
 import { Equalizer, VoiceBars } from "./Bars";
 import { Glyph } from "./Glyph";
@@ -45,7 +45,12 @@ export function displayMood(s: NotchState): Mood {
 const MAX_W = NOTCH.openWidth + 28;
 const MAX_H = NOTCH.height + NOTCH.openExtra + 4;
 
-export function Notch() {
+/**
+ * The notch, drawn at `scale` inside its stage (its box is absolutely positioned at the top centre of
+ * the nearest positioned parent). Several stages can show it; they all share one state, and only
+ * the ones on screen do any work.
+ */
+export function Notch({ scale = 1, label = "Blob's notch" }: { scale?: number; label?: string }) {
   const s = useNotch();
   const root = useRef<HTMLDivElement>(null);
   const shape = useRef<HTMLDivElement>(null);
@@ -53,16 +58,15 @@ export function Notch() {
   const rightWing = useRef<HTMLDivElement>(null);
   const peek = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
-  const dot = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const stateRef = useRef(s);
   stateRef.current = s;
-  const [touch, setTouch] = useState(false);
   const touchRef = useRef(false);
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
 
   const ww = wingWidth(s.wing);
 
-  // Geometry and content springs, written straight to the DOM every frame.
   useEffect(() => {
     const reduce = reducedMotion();
     const w = new Spring(NOTCH.width);
@@ -76,32 +80,44 @@ export function Notch() {
     let wasOpen = false;
     let hoverSince = 0;
     let leftAt = 0;
-    let cw = Math.min(MAX_W, window.innerWidth);
-    let vw = window.innerWidth;
+    const cx = MAX_W / 2;
     let rightWidth = 0;
     let lastPath = "";
     let lastRight = "";
     let lastPeek = "";
     let lastPanel = "";
-    let dotWas = false;
-    const measure = () => {
-      vw = window.innerWidth;
-      cw = Math.min(MAX_W, vw);
-    };
-    window.addEventListener("resize", measure, { passive: true });
+    let visible = false;
+    let rect = { left: 0, top: 0 };
+    let rectDirty = true;
+    const dirty = () => (rectDirty = true);
+    window.addEventListener("resize", dirty, { passive: true });
+    window.addEventListener("scroll", dirty, { passive: true });
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      rectDirty = true;
+    });
+    if (root.current) io.observe(root.current);
     const ro = new ResizeObserver(([e]) => (rightWidth = e.contentRect.width));
     if (rightWing.current) ro.observe(rightWing.current);
 
-    const unsub = subscribe((t, dt) => {
+    const unsub = subscribe((_t, dt) => {
       const st = stateRef.current;
-      if (!root.current) return;
-      const cx = cw / 2;
+      const el = root.current;
+      if (!el || !visible) return;
+      const S = scaleRef.current;
+      if (rectDirty) {
+        const r = el.getBoundingClientRect();
+        rect = { left: r.left, top: r.top };
+        rectDirty = false;
+      }
+      // Pointer in the notch's own (unscaled) coordinates.
+      const lx = (live.px - rect.left) / S;
+      const ly = (live.py - rect.top) / S;
 
       // Hover: peek after 60 ms, open after another 300 ms (NotchViewModel.scheduleHover).
-      const rect = { w: w.value + 2 * tr.value, h: h.value };
+      const bw = w.value + 2 * tr.value;
       const margin = st.open ? 12 : st.peek ? 4 : 6;
-      const inside =
-        Math.abs(live.px - vw / 2) <= rect.w / 2 + margin && live.py >= 0 && live.py <= rect.h + margin;
+      const inside = Math.abs(lx - cx) <= bw / 2 + margin && ly >= -4 && ly <= h.value + margin;
       const now = performance.now();
       if (!touchRef.current) {
         if (inside) {
@@ -109,7 +125,7 @@ export function Notch() {
           if (!hoverSince) hoverSince = now;
           if (!st.open && !st.peek && now - hoverSince > 60) setNotch({ peek: true });
           if (!st.open && now - hoverSince > 360) setNotch({ open: true, peek: false });
-        } else {
+        } else if (hoverSince || st.peek || st.open) {
           hoverSince = 0;
           const busy = st.agent.phase === "working" || st.agent.phase === "listening" || st.agent.phase === "transcribing";
           const typing = document.activeElement === input.current && st.agent.draft.length > 0;
@@ -125,21 +141,14 @@ export function Notch() {
           }
         }
       }
-      const dotOn = inside && !st.open && !touchRef.current;
-      if (dotOn !== dotWas) {
-        document.documentElement.classList.toggle("over-notch", dotOn);
-        if (dot.current) dot.current.style.opacity = dotOn ? "1" : "0";
-        dotWas = dotOn;
-      }
-      if (dotOn && dot.current) dot.current.style.transform = `translate(${live.px - 5}px, ${live.py - 5}px)`;
+      el.classList.toggle("is-hover", inside && !st.open);
 
       // Targets (NotchViewModel.bodySize / topRadius / bottomRadius).
       const wing = wingWidth(st.wing);
-      const maxWing = Math.max(0, (Math.min(vw, MAX_W) - 12 - 12 - NOTCH.width) / 2);
-      const closedW = NOTCH.width + 2 * Math.min(wing, maxWing);
+      const closedW = NOTCH.width + 2 * wing;
       let tw = closedW, th = NOTCH.height, ttr = 6, tbr = st.wing.kind === "none" ? 10 : 12;
       if (st.open) {
-        tw = Math.min(NOTCH.openWidth, vw - 16 - 28);
+        tw = NOTCH.openWidth;
         th = NOTCH.height + NOTCH.openExtra;
         ttr = 14;
         tbr = 30;
@@ -189,72 +198,66 @@ export function Notch() {
           rightWing.current.style.opacity = wingOpacity;
         }
       }
-      const pk = `${cx}|${peekIn.value.toFixed(3)}`;
+      const pk = peekIn.value.toFixed(3);
       if (pk !== lastPeek && peek.current) {
         lastPeek = pk;
         peek.current.style.opacity = String(Math.max(0, peekIn.value));
         peek.current.style.transform = `translate(${cx - 13}px, ${NOTCH.height + 1 - (1 - peekIn.value) * 14}px)`;
       }
-      const pw = Math.min(NOTCH.openWidth, vw - 16 - 28);
-      const pn = `${pw}|${cx}|${panelIn.value.toFixed(3)}|${st.open}`;
+      const pn = `${panelIn.value.toFixed(3)}|${st.open}`;
       if (pn !== lastPanel && panel.current) {
         lastPanel = pn;
-        panel.current.style.width = `${pw}px`;
         panel.current.style.opacity = String(Math.max(0, panelIn.value));
-        panel.current.style.transform = `translateX(${cx - pw / 2}px) scale(${0.96 + 0.04 * Math.min(1, panelIn.value)})`;
+        panel.current.style.transform = `translateX(${cx - NOTCH.openWidth / 2}px) scale(${0.96 + 0.04 * Math.min(1, panelIn.value)})`;
         panel.current.style.visibility = panelIn.value < 0.02 && !st.open ? "hidden" : "visible";
       }
 
       // Where Blob looks: at the pointer, relative to where it sits.
-      const bx = st.open ? vw / 2 - Math.min(NOTCH.openWidth, vw - 44) / 2 + 30 : vw / 2;
+      const bx = st.open ? cx - NOTCH.openWidth / 2 + 30 : cx;
       const by = st.open ? NOTCH.height / 2 : NOTCH.height + 14;
-      live.lookX = Math.max(-1, Math.min(1, (live.px - bx) / 220));
-      live.lookY = Math.max(-1, Math.min(1, (live.py - by) / 160));
-      void t;
+      live.lookX = Math.max(-1, Math.min(1, ((lx - bx) * S) / 220));
+      live.lookY = Math.max(-1, Math.min(1, ((ly - by) * S) / 160));
     });
     return () => {
       unsub();
       ro.disconnect();
-      window.removeEventListener("resize", measure);
+      io.disconnect();
+      window.removeEventListener("resize", dirty);
+      window.removeEventListener("scroll", dirty);
     };
   }, []);
 
-  // Touch: tap the notch to open, tap elsewhere to close.
+  // Touch: tap the notch to open, tap elsewhere to close. Pointer position for everything.
   useEffect(() => {
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
-    touchRef.current = coarse;
-    setTouch(coarse);
+    touchRef.current = window.matchMedia("(pointer: coarse)").matches;
     const move = (e: PointerEvent) => {
       live.px = e.clientX;
       live.py = e.clientY;
-      if (e.pointerType === "mouse" && touchRef.current) {
-        touchRef.current = false;
-        setTouch(false);
-      }
-    };
-    const leave = () => {
-      live.px = -9999;
-      live.py = -9999;
+      if (e.pointerType === "mouse") touchRef.current = false;
     };
     const down = (e: PointerEvent) => {
+      const el = root.current;
+      if (!el || e.pointerType === "mouse") return;
       const st = getNotch();
+      const r = el.getBoundingClientRect();
+      const S = scaleRef.current;
+      const lx = (e.clientX - r.left) / S;
+      const ly = (e.clientY - r.top) / S;
+      const onNotch = Math.abs(lx - MAX_W / 2) < (st.open ? NOTCH.openWidth / 2 : 120) && ly >= 0 && ly < (st.open ? 220 : 48);
       const insidePanel = panel.current?.contains(e.target as Node);
-      const nearTop = Math.abs(e.clientX - window.innerWidth / 2) < (st.open ? 380 : 140) && e.clientY < (st.open ? 220 : 48);
-      if (e.pointerType !== "mouse") {
-        if (!st.open && nearTop) setNotch({ open: true, peek: false });
-        else if (st.open && !insidePanel && !nearTop && st.agent.phase !== "working") setNotch({ open: false });
-      } else if (!st.open && nearTop && e.clientY < 48) {
-        setNotch({ open: true, peek: false });
-      }
+      if (!st.open && onNotch) setNotch({ open: true, peek: false });
+      else if (st.open && !insidePanel && !onNotch && Math.abs(e.clientY - r.top) < 600 && st.agent.phase !== "working") setNotch({ open: false });
     };
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape" && getNotch().open) setNotch({ open: false, holdUntil: 0 });
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerdown", down, { passive: true });
-    document.addEventListener("pointerleave", leave);
     window.addEventListener("keydown", key);
     const openFocus = () => {
+      if (!root.current) return;
+      const r = root.current.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > window.innerHeight) return;
       setNotch({ open: true, holdUntil: performance.now() + 8000 });
       requestAnimationFrame(() => input.current?.focus());
     };
@@ -262,7 +265,6 @@ export function Notch() {
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerdown", down);
-      document.removeEventListener("pointerleave", leave);
       window.removeEventListener("keydown", key);
       window.removeEventListener("blob:focus-notch", openFocus);
     };
@@ -271,28 +273,31 @@ export function Notch() {
   const mood = displayMood(s);
 
   return (
-    <>
-      <div ref={root} className="notch" style={{ width: `min(${MAX_W}px, 100vw)`, height: MAX_H }} data-touch={touch || undefined}>
-        <div ref={shape} className="notch-shape">
-          <div ref={leftWing} className="wing wing-left" style={{ width: Math.max(0, ww - 10), opacity: 0 }}>
-            <WingSide wing={s.wing} side="left" mood={mood} />
-          </div>
-          <div ref={rightWing} className="wing wing-right" style={{ opacity: 0 }}>
-            <WingSide wing={s.wing} side="right" mood={mood} />
-          </div>
-          <div ref={peek} className="notch-peek" aria-hidden="true">
-            <BlobFigure mood={mood} size={16} look="notch" active={s.peek && !s.open} />
-          </div>
-          <div ref={panel} className="panel" style={{ height: NOTCH.height + NOTCH.openExtra }} inert={!s.open}>
-            <Panel s={s} mood={mood} input={input} />
-          </div>
+    <div
+      ref={root}
+      className="notch"
+      style={{ width: MAX_W, height: MAX_H, transform: `translateX(-50%) scale(${scale})` }}
+      role="group"
+      aria-label={label}
+    >
+      <div ref={shape} className="notch-shape">
+        <div ref={leftWing} className="wing wing-left" style={{ width: Math.max(0, ww - 10), opacity: 0 }}>
+          <WingSide wing={s.wing} side="left" mood={mood} />
+        </div>
+        <div ref={rightWing} className="wing wing-right" style={{ opacity: 0 }}>
+          <WingSide wing={s.wing} side="right" mood={mood} />
+        </div>
+        <div ref={peek} className="notch-peek" aria-hidden="true">
+          <BlobFigure mood={mood} size={16} look="notch" active={s.peek && !s.open} />
+        </div>
+        <div ref={panel} className="panel" style={{ width: NOTCH.openWidth, height: NOTCH.height + NOTCH.openExtra }} inert={!s.open}>
+          <Panel s={s} mood={mood} input={input} />
         </div>
       </div>
-      <div ref={dot} className="notch-cursor" aria-hidden="true" />
       <p className="sr-only" aria-live="polite">
-        {s.agent.phase === "done" ? `Blob: ${s.agent.reply}` : s.agent.phase === "working" ? `Blob is working: ${s.agent.steps.at(-1) ?? ""}` : ""}
+        {s.agent.phase === "done" ? `Blob: ${s.agent.reply}` : ""}
       </p>
-    </>
+    </div>
   );
 }
 

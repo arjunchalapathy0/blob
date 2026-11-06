@@ -1,5 +1,31 @@
 # Blob site — design
 
+## Direction (v2): a dark room, Blob as the lead
+
+The first version (Aluminium, below) was quiet to a fault: flat grey, a tiny notch, lots of empty
+space, nothing to stop the scroll. The owner asked for a mix of *cinematic, Apple-style* and
+*Blob is the star*. The rules now:
+
+- **Black page, real-looking screens.** The page is a dark room. The only lit things are Mac
+  screens (a bezel, a softly lit screen) and the type. Still monochrome: no accent colour.
+- **The opening shot** is a MacBook screen filling the window. Scrolling pushes the camera into the
+  notch, the notch springs open, and Blob drops out onto the headline.
+- **Blob is the lead.** One big Blob (`BlobActor`) lives on top of the page and travels between
+  perches (anchors) in every section, on a loose spring: it stretches as it moves, leans into the
+  direction of travel, squashes on landing, looks where it's going and then at you. Each perch says
+  how Blob feels (the scene's mood, or whatever the notch feels).
+- **The notch is big.** The demo, scenes and feature index each put the real notch, scaled up, at
+  the top of a Mac screen. They share one state, so the same request plays wherever you look.
+- **The demo is never idle.** Until you touch it, Blob runs through the requests by itself.
+- **Type is huge and tight** (Bricolage Grotesque, condensed `wdth` axis, −0.045em), with Newsreader
+  for reading.
+- Motion: every animation is still one of the app's springs (`Blob/Core/Springs.swift`), solved per
+  frame, and the character still runs `Mood.pose(at:)` line for line. Reduced motion holds still.
+
+---
+
+# Blob site — design
+
 ## Direction: Aluminium
 
 The page is the machine. Light mode is the anodized lid of a MacBook in daylight; dark mode is the

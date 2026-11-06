@@ -35,3 +35,19 @@ DESIGN.md after each round.
 Final checks: no horizontal scroll at 320px; keyboard order (skip link, menu, Talk to Blob, theme,
 Get Blob, keycap, requests, moods, index…); the keycap works with Space held; reduced motion shows
 final frames and a still, blinking Blob.
+
+## Round 4: the owner's verdict
+
+The owner looked at v1 and didn't like it (“straight ass cheeks”). Honest read: flat grey, a notch too
+small to notice, wireframe-looking windows, big empty gaps, and no moment that stops the scroll.
+They chose a mix of *cinematic* and *Blob is the star*, and named “too empty” and “not impressive”.
+
+| What was wrong | What changed |
+|---|---|
+| The grey aluminium page was dull. | A black page with lit Mac screens; type in near-white. |
+| Nothing impressive up top. | A scroll-driven opening: a full-window Mac screen, the camera pushes into the notch, it springs open, Blob drops onto a 200px headline. |
+| Blob was tiny or absent. | One big Blob travels the whole page with spring physics, perching on the demo screen, each scene title, the moods stage, the feature index, the headline and the footer. |
+| The notch was small, at the top of the viewport. | The real notch, scaled ~1.7×, at the top of a big Mac screen in the demo; scaled copies in the scenes and the feature index. |
+| The demo sat empty until you acted. | It runs through the requests by itself while on screen, until you touch it. |
+| Moods were a small panel. | A 300px Blob in the middle of the page with the mood's name set enormous behind it. |
+| Blob covered text on its perches (it was placed by its unscaled box). | Placed by its bottom centre, which is what scales. |

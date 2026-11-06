@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Desktop, EMPTY_DESKTOP, type DesktopState } from "./Desktop";
 import { Keycap } from "./Keycap";
+import { Notch } from "./Notch";
+import { useNotchScale } from "@/lib/useNotchScale";
 import { Cancelled, runScript } from "@/lib/agent";
 import { onNotchSubmit, setAgent, setNotch, takeNotch } from "@/lib/notch";
 import { HERO_REQUESTS, OFF_SCRIPT_REPLY, matchRequest, type Script } from "@/lib/requests";
@@ -14,6 +16,7 @@ export function Hero() {
   const [followUp, setFollowUp] = useState<Script | null>(null);
   const abort = useRef<AbortController | null>(null);
   const release = useRef<(() => void) | null>(null);
+  const notchScale = useNotchScale(1.68, 0.94);
   const selectedRef = useRef(0);
   selectedRef.current = selected;
 
@@ -116,6 +119,7 @@ export function Hero() {
   useEffect(
     () =>
       onNotchSubmit((text) => {
+        interacted.current = true;
         const match = matchRequest(text);
         const isYes = followUp && /^(yes|yeah|yep|do it|sure|ok)/i.test(text.trim());
         if (isYes && followUp) return void start({ ...followUp, spoken: text }, "typed", { typeIt: false, continuing: true });
@@ -127,35 +131,86 @@ export function Hero() {
 
   useEffect(() => () => abort.current?.abort(), []);
 
+  // Until you touch anything, Blob runs through the requests on its own while the demo is on screen.
+  const section = useRef<HTMLElement>(null);
+  const interacted = useRef(false);
+  useEffect(() => {
+    const el = section.current;
+    if (!el) return;
+    let visible = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let i = 0;
+    const next = async () => {
+      if (!visible || interacted.current) return;
+      const r = HERO_REQUESTS[i % (HERO_REQUESTS.length - 1)];
+      i += 1;
+      setSelected(HERO_REQUESTS.indexOf(r));
+      await start(r, "typed");
+      if (!visible || interacted.current) return;
+      setNotch({ holdUntil: 0 });
+      timer = setTimeout(() => {
+        setNotch({ open: false });
+        timer = setTimeout(next, 1400);
+      }, 2600);
+    };
+    const io = new IntersectionObserver(
+      ([e]) => {
+        const was = visible;
+        visible = e.intersectionRatio > 0.45;
+        if (visible && !was && !interacted.current) timer = setTimeout(next, 700);
+        if (!visible && was) {
+          if (timer) clearTimeout(timer);
+          if (!interacted.current) abort.current?.abort();
+        }
+      },
+      { threshold: [0, 0.45, 0.6] },
+    );
+    io.observe(el);
+    const stop = (e: Event) => {
+      if (e.isTrusted) interacted.current = true;
+    };
+    el.addEventListener("pointerdown", stop, true);
+    el.addEventListener("keydown", stop, true);
+    window.addEventListener("keydown", (e) => e.code === "AltRight" && stop(e));
+    return () => {
+      io.disconnect();
+      if (timer) clearTimeout(timer);
+      el.removeEventListener("pointerdown", stop, true);
+      el.removeEventListener("keydown", stop, true);
+    };
+  }, [start]);
+
   const current = HERO_REQUESTS[selected];
 
   return (
-    <section id="demo" className="hero" data-mood="idle" aria-labelledby="hero-title">
-      <div className="wrap hero-grid">
-        <div className="hero-copy">
-          <h1 id="hero-title" className="display">
-            <span>
-              Hold <span className="h-key"><span aria-hidden="true">⌥</span><span className="sr-only">right Option</span></span>.
-            </span>
-            <span>Say it.</span>
-            <span>Let go.</span>
-          </h1>
-          <p className="lead">
-            Blob lives in your MacBook’s notch. Tell it what you want, out loud or typed, and it does it on your Mac:
-            opens the app, finds the episode, runs the shortcut, reads the error you’re staring at. Anything it can’t
-            take back, it asks about first.
+    <section id="demo" ref={section} className="demo" aria-labelledby="demo-title">
+      <div className="wrap">
+        <div className="demo-head">
+          <h2 id="demo-title" className="h2">Go on, try it.</h2>
+          <p className="body">
+            This is the real notch, at real proportions, blown up. Hold the key, or right ⌥ on your keyboard, and
+            Blob hears you. Or pick something and watch it get typed in.
           </p>
+        </div>
 
+        <div className="mac">
+          <div className="blob-anchor" data-blob="sit" data-blob-size="96" data-blob-x="0.86" data-blob-mood="notch" />
+          <div className="mac-screen">
+            <Notch scale={notchScale} label="The notch: hover or tap it to open, or hold right Option to talk" />
+            <Desktop s={desk} label="A Mac desktop where Blob carries out the request" />
+          </div>
+        </div>
+
+        <div className="controls">
           <div className="try">
             <Keycap pressed={pressed} onDown={keyDown} onUp={keyUp} describedBy="try-copy" />
             <div className="try-copy" id="try-copy">
-              <p className="small">Hold this, or the real right ⌥ if you’re on a Mac. Blob hears</p>
+              <p className="small">Hold to talk. Blob hears</p>
               <p className="quote">“{current.spoken}”</p>
             </div>
           </div>
-
           <div className="requests">
-            <p className="small">Or watch one get typed into the notch</p>
+            <p className="small">Or have it typed into the notch</p>
             <ul>
               {HERO_REQUESTS.map((r, i) => (
                 <li key={r.id}>
@@ -181,10 +236,6 @@ export function Hero() {
               )}
             </ul>
           </div>
-        </div>
-
-        <div className="hero-stage">
-          <Desktop s={desk} label="A Mac desktop where Blob carries out the request" />
         </div>
       </div>
     </section>

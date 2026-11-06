@@ -2,9 +2,12 @@ import { site } from "@/lib/site";
 
 export function Privacy() {
   return (
-    <section id="privacy" className="section privacy" data-mood="idle" aria-labelledby="privacy-title">
+    <section id="privacy" className="section privacy" aria-labelledby="privacy-title">
       <div className="wrap privacy-grid">
-        <h2 id="privacy-title" className="h2">What it sees, and what it needs.</h2>
+        <h2 id="privacy-title" className="h2">
+          <span className="blob-anchor" data-blob="sit" data-blob-size="90" data-blob-x="0.2" data-blob-mood="curious" />
+          What it sees, and what it needs.
+        </h2>
         <div className="rows">
           <h3 className="rows-title">What it sees</h3>
           <ul>
@@ -32,7 +35,10 @@ export function GetIt() {
   return (
     <section id="get" className="section get" data-mood="curious" aria-labelledby="get-title">
       <div className="wrap get-grid">
-        <h2 id="get-title" className="display get-title">Move Blob in.</h2>
+        <h2 id="get-title" className="display get-title">
+          <span className="blob-anchor" data-blob="sit" data-blob-size="150" data-blob-x="0.78" data-blob-mood="happy" />
+          Move Blob in.
+        </h2>
         <div className="get-copy">
           {site.downloadUrl ? (
             <p className="body">Download it, drag it to Applications, and hold right ⌥.</p>
@@ -58,7 +64,8 @@ export function GetIt() {
 
 export function Footer() {
   return (
-    <footer className="footer" data-mood="sleepy">
+    <footer className="footer">
+      <div className="blob-anchor footer-anchor" data-blob="sit" data-blob-size="70" data-blob-x="0.5" data-blob-mood="sleepy" data-blob-priority="600" />
       <div className="wrap footer-row">
         <p>Blob. It lives in the notch.</p>
         <p className="fine">Not affiliated with Apple. MacBook and macOS are trademarks of Apple Inc.</p>
