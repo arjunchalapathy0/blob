@@ -50,6 +50,8 @@ enum ClaudeCLI {
             "--output-format", "stream-json", "--verbose", "--include-partial-messages",
             "--allowedTools", "Read",
             "--max-turns", "4",
+            // Don't run anyone's hooks (including Blob's own) for these quick questions.
+            "--settings", #"{"disableAllHooks": true}"#,
             "--append-system-prompt",
             "You are answering inside Blob, a small helper in the Mac's notch. The user is asking about what is on their "
                 + "screen right now. Answer directly and briefly: a few sentences or a short list. Refer to things by what "
@@ -65,17 +67,39 @@ enum ClaudeCLI {
         p.standardInput = FileHandle.nullDevice
         try p.run()
 
+        let log = Log(question: question)
+        var gotResult = false
         try await withTaskCancellationHandler {
             for try await line in out.fileHandleForReading.bytes.lines {
-                if let event = parse(line) { await onEvent(event) }
+                log.append(line)
+                guard let event = parse(line) else { continue }
+                if case .final = event { gotResult = true }
+                if case .failure = event { gotResult = true }
+                await onEvent(event)
             }
         } onCancel: {
             p.terminate()
         }
         while p.isRunning { try await Task.sleep(for: .milliseconds(50)) }
-        if p.terminationStatus != 0 {
-            let message = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            await onEvent(.failure(friendly(message)))
+        let stderr = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        log.append("exit \(p.terminationStatus)\n" + stderr)
+        log.save()
+        if !gotResult {
+            // Hook chatter isn't the real problem; show the rest.
+            let useful = stderr.split(separator: "\n").filter { !$0.contains("hook") }.joined(separator: "\n")
+            await onEvent(.failure(friendly(useful.isEmpty ? "Claude Code exited without an answer (code \(p.terminationStatus))." : useful)))
+        }
+    }
+
+    /// Keeps the last run's raw output in ~/Library/Logs/Blob/ask.log for troubleshooting.
+    private final class Log {
+        private var text: String
+        init(question: String) { text = "\(Date()) question: \(question)\n" }
+        func append(_ line: String) { text += line + "\n" }
+        func save() {
+            let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Blob", isDirectory: true)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try? text.write(to: dir.appendingPathComponent("ask.log"), atomically: true, encoding: .utf8)
         }
     }
 
@@ -95,7 +119,10 @@ enum ClaudeCLI {
             }
         case "result":
             let result = obj["result"] as? String ?? ""
-            if obj["is_error"] as? Bool == true { return .failure(friendly(result)) }
+            if obj["is_error"] as? Bool == true {
+                let subtype = obj["subtype"] as? String ?? ""
+                return .failure(friendly(result.isEmpty ? subtype : result))
+            }
             return result.isEmpty ? nil : .final(result)
         default:
             break

@@ -51,6 +51,11 @@ final class ClaudeService: ObservableObject {
             src.resume()
             source = src
         }
+        // If Blob moved (e.g. a new build in Applications), point the hooks at this copy.
+        if ClaudeHookInstaller.needsUpdate {
+            try? ClaudeHookInstaller.install()
+            refreshInstallState()
+        }
         // Backup poll, and ages out stale sessions.
         Timer.publish(every: 5, on: .main, in: .common).autoconnect()
             .sink { [weak self] _ in self?.reload() }
