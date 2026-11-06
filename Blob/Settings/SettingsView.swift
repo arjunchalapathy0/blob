@@ -10,6 +10,7 @@ struct SettingsView: View {
     @EnvironmentObject private var updates: UpdateService
     @EnvironmentObject private var ask: AskService
     @EnvironmentObject private var lock: LockService
+    @EnvironmentObject private var phoneBridge: PhoneBridge
 
     @AppStorage(Prefs.openOnHover) private var openOnHover = true
     @AppStorage(Prefs.hoverDelay) private var hoverDelay = 0.3
@@ -24,7 +25,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.timerSound) private var timerSound = true
     @AppStorage(Prefs.stayOpen) private var stayOpen = false
     @AppStorage(Prefs.requireAuth) private var requireAuth = false
-    @AppStorage(Prefs.phoneBridge) private var phoneBridge = false
+    @AppStorage(Prefs.phoneBridge) private var phoneBridgeOn = false
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -135,7 +136,18 @@ struct SettingsView: View {
                     }
                 }
                 Toggle("Sounds when Claude finishes or needs you", isOn: $claudeSounds)
-                Toggle("Show on iPhone (same Wi-Fi)", isOn: $phoneBridge)
+                Toggle("Show on iPhone (same Wi-Fi)", isOn: $phoneBridgeOn)
+                if phoneBridgeOn {
+                    LabeledContent("iPhone pairing code") {
+                        HStack {
+                            Text(phoneBridge.pairingCode).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                            if phoneBridge.pairedCount > 0 {
+                                Text("· \(phoneBridge.pairedCount) connected").foregroundStyle(.secondary)
+                            }
+                            Button("New code") { phoneBridge.resetCode() }
+                        }
+                    }
+                }
                 if let error = claude.lastError { Text(error).font(.caption).foregroundStyle(.secondary) }
             } header: {
                 Text("Claude Code")

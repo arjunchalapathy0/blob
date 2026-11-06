@@ -29,7 +29,7 @@ final class TimerStore: ObservableObject {
         var timer = PhoneTimer(label: label, duration: duration, end: end)
         timer.activityID = IslandManager.start(
             kind: .timer,
-            state: .init(mood: Mood.idle.rawValue, title: "Timer", detail: label, endDate: end),
+            state: .init(mood: Mood.idle.rawValue, title: "Timer", detail: label, endDate: end, startDate: Date()),
             staleDate: end)
         timers.append(timer)
         scheduleNotification(for: timer)

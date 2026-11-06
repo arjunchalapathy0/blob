@@ -41,20 +41,21 @@ enum ClaudeCLI {
 
     /// Asks Claude Code about a screenshot file and streams events.
     static func ask(cli: String, imagePath: String, question: String, workingDirectory: URL,
+                    context: String = "what is on their screen right now",
                     onEvent: @escaping @MainActor (Event) -> Void) async throws {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: cli)
         p.currentDirectoryURL = workingDirectory
         p.arguments = [
-            "-p", "A screenshot of my screen is at \(imagePath). Look at it with the Read tool, then answer: \(question)",
+            "-p", "The image is at \(imagePath). Look at it with the Read tool, then answer: \(question)",
             "--output-format", "stream-json", "--verbose", "--include-partial-messages",
             "--allowedTools", "Read",
             "--max-turns", "4",
             // Don't run anyone's hooks (including Blob's own) for these quick questions.
             "--settings", #"{"disableAllHooks": true}"#,
             "--append-system-prompt",
-            "You are answering inside Blob, a small helper in the Mac's notch. The user is asking about what is on their "
-                + "screen right now. Answer directly and briefly: a few sentences or a short list. Refer to things by what "
+            "You are answering inside Blob, a small helper app. The user is asking about \(context). "
+                + "Answer directly and briefly: a few sentences or a short list. Refer to things by what "
                 + "they say on screen. Don't mention the file or that you read it. Use Markdown sparingly.",
         ]
         var env = ProcessInfo.processInfo.environment

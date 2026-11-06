@@ -70,6 +70,7 @@ struct TimersScreen: View {
 
 struct AskScreen: View {
     @EnvironmentObject private var ask: AskModel
+    @EnvironmentObject private var link: MacLink
     @State private var pick: PhotosPickerItem?
     @State private var key = ""
     @FocusState private var focused: Bool
@@ -78,7 +79,7 @@ struct AskScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 ScreenHeader(title: "Ask", mood: ask.isBusy ? .busy : .curious)
-                if !ask.hasKey { keyCard } else { content }
+                if !ask.isReady { keyCard } else { content }
             }
             .padding(20)
         }
@@ -94,7 +95,7 @@ struct AskScreen: View {
 
     private var keyCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Add your Anthropic API key to ask Claude about screenshots and photos. It stays in your Keychain.")
+            Text("Connect to Blob on your Mac (Claude tab) to ask using your Claude subscription. Or add an Anthropic API key; it stays in your Keychain.")
                 .font(Theme.font(13)).foregroundStyle(Theme.secondary)
             SecureField("sk-ant-…", text: $key)
                 .font(Theme.font(15)).padding(12)
@@ -104,6 +105,9 @@ struct AskScreen: View {
     }
 
     @ViewBuilder private var content: some View {
+        Text(ask.viaMac ? "Answers through your Mac · Claude subscription" : "Answers with your API key")
+            .font(Theme.font(11)).foregroundStyle(Theme.tertiary)
+
         HStack(spacing: 8) {
             PhotosPicker(selection: $pick, matching: .images) {
                 Label("Choose", systemImage: "photo").font(Theme.font(13, .semibold))
@@ -165,8 +169,10 @@ struct AskScreen: View {
             .background(Theme.fill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
 
-        Button("Remove API key") { ask.setKey("") }
-            .font(Theme.font(11)).foregroundStyle(Theme.tertiary).padding(.top, 12)
+        if ask.hasKey {
+            Button("Remove API key") { ask.setKey("") }
+                .font(Theme.font(11)).foregroundStyle(Theme.tertiary).padding(.top, 12)
+        }
     }
 }
 
@@ -174,6 +180,7 @@ struct AskScreen: View {
 
 struct ClaudeScreen: View {
     @EnvironmentObject private var link: MacLink
+    @State private var code = ""
 
     var body: some View {
         ScrollView {
@@ -183,7 +190,22 @@ struct ClaudeScreen: View {
                     Circle().fill(connected ? Theme.ink : Theme.tertiary).frame(width: 7, height: 7)
                     Text(statusText).font(Theme.font(13)).foregroundStyle(Theme.secondary)
                 }
-                Toggle("Show in Dynamic Island", isOn: Binding(get: { link.showsInIsland }, set: { link.showsInIsland = $0 }))
+                if case .needsCode(let mac) = link.status {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Enter the pairing code from Blob on \(mac): Settings → Claude Code.")
+                            .font(Theme.font(13)).foregroundStyle(Theme.secondary)
+                        HStack {
+                            TextField("000000", text: $code)
+                                .keyboardType(.numberPad)
+                                .font(Theme.digits(22, .semibold))
+                                .padding(12)
+                                .background(Theme.fill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            PillButton(title: "Pair", prominent: true) { link.pair(code: code); code = "" }
+                                .disabled(code.filter(\.isNumber).count != 6)
+                        }
+                    }
+                }
+                Toggle("Show on Lock Screen", isOn: Binding(get: { link.showsInIsland }, set: { link.showsInIsland = $0 }))
                     .font(Theme.font(14, .medium)).tint(Theme.ink.opacity(0.8))
                 if !connected {
                     Text("On your Mac, open Blob → Settings → Claude Code and turn on “Show on iPhone”. Both devices need to be on the same Wi-Fi.")
@@ -214,6 +236,7 @@ struct ClaudeScreen: View {
     private var statusText: String {
         switch link.status {
         case .searching: "Looking for your Mac…"
+        case .needsCode(let name): "Found \(name) · needs pairing"
         case .connected(let name): "Connected to \(name)"
         }
     }

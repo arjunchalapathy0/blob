@@ -20,6 +20,9 @@ targets:
   Blob:
     type: application
     platform: macOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     scheme: {}
     sources:
       - path: Blob
@@ -82,6 +85,9 @@ targets:
   BlobPhone:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     scheme: {}
     deploymentTarget: "17.0"
     sources:
@@ -120,6 +126,9 @@ targets:
   BlobIsland:
     type: app-extension
     platform: iOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     deploymentTarget: "17.0"
     sources:
       - path: iOS/BlobIsland

@@ -23,7 +23,10 @@ struct BlobPhoneApp: App {
             .environmentObject(ask)
             .environmentObject(link)
             .environmentObject(calendar)
-            .onAppear { link.start() }
+            .onAppear {
+                ask.link = link
+                link.start()
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     timers.sweep()

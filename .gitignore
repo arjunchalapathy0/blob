@@ -7,3 +7,5 @@ Vendor/src/
 *.xcarchive
 dist/
 Blob-source.zip
+Config/Local.xcconfig
+scripts/.update-run-*

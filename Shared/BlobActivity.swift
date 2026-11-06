@@ -10,6 +10,7 @@ struct BlobActivityAttributes: ActivityAttributes {
         var title: String
         var detail: String
         var endDate: Date?        // countdown target (timer end, event start)
+        var startDate: Date?      // when the countdown began, for the progress bar
     }
 
     var kind: Kind

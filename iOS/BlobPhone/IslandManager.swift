@@ -14,9 +14,11 @@ enum IslandManager {
         return try? Activity.request(attributes: BlobActivityAttributes(kind: kind), content: content, pushType: nil).id
     }
 
-    static func update(id: String, state: BlobActivityAttributes.ContentState, staleDate: Date? = nil) {
+    /// With `alert`, phones without a Dynamic Island show the update as a banner.
+    static func update(id: String, state: BlobActivityAttributes.ContentState, staleDate: Date? = nil,
+                       alert: AlertConfiguration? = nil) {
         guard let activity = activity(id) else { return }
-        Task { await activity.update(ActivityContent(state: state, staleDate: staleDate)) }
+        Task { await activity.update(ActivityContent(state: state, staleDate: staleDate), alertConfiguration: alert) }
     }
 
     static func end(id: String?, after seconds: TimeInterval? = nil) {

@@ -86,7 +86,9 @@ final class UpdateService: ObservableObject {
         state = .updating
         notices.message("arrow.triangle.2.circlepath", "Updating…", duration: 900)
         Task {
-            let result = await Self.run(source, ["build", Self.teamID() ?? ""])
+            let team = Self.teamID()
+            Self.saveTeam(team, in: source)
+            let result = await Self.run(source, ["build", team ?? ""])
             let app = Self.parse(result.output)["app"]
             guard result.status == 0, let app, FileManager.default.fileExists(atPath: app) else {
                 state = .failed(Self.firstLine(result.output, fallback: "Build failed."))
@@ -117,11 +119,27 @@ final class UpdateService: ObservableObject {
 
     // MARK: - Helpers
 
+    /// Keeps the signing team in Config/Local.xcconfig so regenerating the project doesn't reset it.
+    private static func saveTeam(_ team: String?, in source: URL) {
+        guard let team, !team.isEmpty else { return }
+        let file = source.appendingPathComponent("Config/Local.xcconfig")
+        guard !FileManager.default.fileExists(atPath: file.path) else { return }
+        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? "// Your Apple team for signing. Not committed.\nDEVELOPMENT_TEAM = \(team)\n"
+            .write(to: file, atomically: true, encoding: .utf8)
+    }
+
     private static func run(_ source: URL, _ args: [String]) async -> (status: Int32, output: String) {
-        await withCheckedContinuation { continuation in
+        // Run a copy (next to the original, so it finds the project): `git pull` may rewrite
+        // update.sh while it's running, and bash reads scripts as it goes.
+        let original = source.appendingPathComponent("scripts/update.sh")
+        let copy = source.appendingPathComponent("scripts/.update-run-\(UUID().uuidString).sh")
+        let script = (try? FileManager.default.copyItem(at: original, to: copy)) != nil ? copy : original
+        defer { if script == copy { try? FileManager.default.removeItem(at: copy) } }
+        return await withCheckedContinuation { continuation in
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/bin/bash")
-            p.arguments = [source.appendingPathComponent("scripts/update.sh").path] + args
+            p.arguments = [script.path] + args
             p.currentDirectoryURL = source
             let pipe = Pipe()
             p.standardOutput = pipe

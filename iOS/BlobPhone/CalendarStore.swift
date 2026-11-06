@@ -31,7 +31,7 @@ final class CalendarStore: ObservableObject {
         activityID = IslandManager.start(
             kind: .event,
             state: .init(mood: Mood.curious.rawValue, title: event.title ?? "Event",
-                         detail: event.location ?? "", endDate: start),
+                         detail: event.location ?? "", endDate: start, startDate: Date()),
             staleDate: start)
         islandEventID = activityID == nil ? nil : event.calendarItemIdentifier
     }

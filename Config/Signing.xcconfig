@@ -1,0 +1,3 @@
+// Signing for all targets. Your Apple team lives in Local.xcconfig (not committed),
+// which scripts/bootstrap.sh and scripts/update.sh write for you.
+#include? "Local.xcconfig"

@@ -52,28 +52,49 @@ struct BlobIslandWidget: Widget {
     }
 }
 
+/// The main view on phones without a Dynamic Island (like iPhone 11 Pro): big, calm, readable at a glance.
 private struct LockScreenView: View {
     let context: ActivityViewContext<BlobActivityAttributes>
 
     var body: some View {
-        HStack(spacing: 14) {
-            BlobFace(mood: context.displayMood, size: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(context.state.title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .lineLimit(1)
-                if !context.state.detail.isEmpty {
-                    Text(context.state.detail)
-                        .font(.system(size: 13, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.56))
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 14) {
+                BlobFace(mood: context.displayMood, size: 38)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(headline)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(context.isUrgent ? 1 : 0.56))
+                        .textCase(.uppercase)
+                    Text(context.state.title)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .lineLimit(1)
+                    if !context.state.detail.isEmpty {
+                        Text(context.state.detail)
+                            .font(.system(size: 13, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.56))
+                            .lineLimit(2)
+                    }
                 }
+                Spacer(minLength: 8)
+                TrailingValue(context: context, large: true)
             }
-            Spacer(minLength: 8)
-            TrailingValue(context: context, large: true)
+            if let start = context.state.startDate, let end = context.state.endDate, end > start,
+               !context.isStale, end > .now {
+                ProgressView(timerInterval: start...end, countsDown: true) { EmptyView() } currentValueLabel: { EmptyView() }
+                    .progressViewStyle(.linear)
+                    .tint(.white)
+            }
         }
         .foregroundStyle(.white)
-        .padding(16)
+        .padding(18)
+    }
+
+    private var headline: String {
+        switch context.attributes.kind {
+        case .timer: return context.isStale ? "Time’s up" : "Timer"
+        case .event: return context.isStale ? "Starting now" : "Up next"
+        case .claude: return "Claude · \(context.wordLabel)"
+        }
     }
 }
 
@@ -110,6 +131,11 @@ extension ActivityViewContext where Attributes == BlobActivityAttributes {
             }
         }
         return Mood(rawValue: state.mood) ?? .idle
+    }
+
+    /// Needs attention: a finished timer, or Claude waiting for you.
+    var isUrgent: Bool {
+        (attributes.kind == .timer && isStale) || (attributes.kind == .claude && state.mood == Mood.alarmed.rawValue)
     }
 
     var wordLabel: String {

@@ -49,7 +49,7 @@ final class Services: ObservableObject {
         stats.start()
         updates.start()
         lock.start()
-        phoneBridge.start(claude: claude)
+        phoneBridge.start(claude: claude, ask: ask)
     }
 }
 
@@ -71,5 +71,6 @@ extension View {
             .environmentObject(s.updates)
             .environmentObject(s.ask)
             .environmentObject(s.lock)
+            .environmentObject(s.phoneBridge)
     }
 }
