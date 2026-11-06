@@ -1,5 +1,6 @@
 import AppKit
 import LocalAuthentication
+import SwiftUI
 
 /// Optional Touch ID lock for private tabs (Clipboard, Shelf, Ask). Falls back to the Mac
 /// password or Apple Watch. Locks again 30 s after the notch closes, and when the screen locks.
