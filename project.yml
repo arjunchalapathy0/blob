@@ -82,6 +82,7 @@ targets:
   BlobPhone:
     type: application
     platform: iOS
+    scheme: {}
     deploymentTarget: "17.0"
     sources:
       - path: iOS/BlobPhone
