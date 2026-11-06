@@ -6,3 +6,4 @@ Vendor/MediaRemoteAdapter/
 Vendor/src/
 *.xcarchive
 dist/
+Blob-source.zip
