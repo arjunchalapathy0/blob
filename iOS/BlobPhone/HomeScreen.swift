@@ -14,6 +14,7 @@ struct HomeScreen: View {
                 commandCard
                 statusRows
                 quickTimers
+                IconPicker().padding(.top, 8)
             }
             .padding(20)
         }

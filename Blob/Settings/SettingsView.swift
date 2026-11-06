@@ -30,6 +30,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.voiceKey) private var voiceKey = true
     @AppStorage(Prefs.phoneTasks) private var phoneTasks = true
 
+    @State private var appIcon = AppIconChoice.current
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
     @State private var apiKey = ""
@@ -45,6 +46,29 @@ struct SettingsView: View {
                         Text("Blob").font(.system(size: 17, weight: .semibold, design: .rounded))
                         Text("A soft little notch.").foregroundStyle(.secondary)
                     }
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("App icon") {
+                HStack(spacing: 18) {
+                    ForEach(AppIconChoice.allCases) { choice in
+                        Button {
+                            appIcon = choice
+                            AppIconChoice.select(choice)
+                        } label: {
+                            VStack(spacing: 6) {
+                                Image(choice.previewImage).resizable().frame(width: 64, height: 64)
+                                    .padding(4)
+                                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(appIcon == choice ? Color.accentColor : .clear, lineWidth: 2))
+                                Text(choice.title).font(.caption)
+                                    .foregroundStyle(appIcon == choice ? .primary : .secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
                 }
                 .padding(.vertical, 4)
             }

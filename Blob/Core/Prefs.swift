@@ -16,6 +16,7 @@ enum Prefs {
     static let requireAuth = "requireAuth"
     static let phoneBridge = "phoneBridge"
     static let voiceKey = "voiceKey"
+    static let appIcon = "appIcon"
     static let phoneTasks = "phoneTasks"
     static let selectedCamera = "selectedCamera"
 

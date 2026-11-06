@@ -2,7 +2,7 @@
 """Draws Blob's app icons (macOS and iOS) with Pillow. Monochrome, continuous corners.
 
     python3 scripts/make_icons.py preview <out_dir>   # side-by-side variants
-    python3 scripts/make_icons.py build <variant>     # writes the asset catalogs
+    python3 scripts/make_icons.py build [default] [alternate]   # writes the asset catalogs (blob, light)
 """
 import json
 import os
@@ -151,12 +151,15 @@ def preview(out_dir):
     print(os.path.join(out_dir, "icons-preview.png"))
 
 
-def build(variant):
+def build(default="blob", alternate="light"):
+    """Writes the default icon (AppIcon) and the alternate one for both apps."""
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # macOS
-    mac_dir = os.path.join(root, "Blob/Assets.xcassets/AppIcon.appiconset")
+    info = {"info": {"version": 1, "author": "xcode"}}
+    # macOS: the default app icon, plus the alternate as an image Blob applies at runtime.
+    mac_assets = os.path.join(root, "Blob/Assets.xcassets")
+    mac_dir = os.path.join(mac_assets, "AppIcon.appiconset")
     os.makedirs(mac_dir, exist_ok=True)
-    master = render_mac(variant, 1024)
+    master = render_mac(default, 1024)
     images = []
     for pt in (16, 32, 128, 256, 512):
         for scale in (1, 2):
@@ -164,18 +167,33 @@ def build(variant):
             name = f"icon_{pt}x{pt}{'@2x' if scale == 2 else ''}.png"
             master.resize((px, px), Image.LANCZOS).save(os.path.join(mac_dir, name))
             images.append({"idiom": "mac", "size": f"{pt}x{pt}", "scale": f"{scale}x", "filename": name})
-    write_json(os.path.join(mac_dir, "Contents.json"), {"images": images, "info": {"version": 1, "author": "xcode"}})
-    write_json(os.path.join(root, "Blob/Assets.xcassets/Contents.json"), {"info": {"version": 1, "author": "xcode"}})
-    # iOS
-    ios_dir = os.path.join(root, "iOS/BlobPhone/Assets.xcassets/AppIcon.appiconset")
-    os.makedirs(ios_dir, exist_ok=True)
-    render_ios(variant).save(os.path.join(ios_dir, "icon-1024.png"))
-    write_json(os.path.join(ios_dir, "Contents.json"), {
-        "images": [{"idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon-1024.png"}],
-        "info": {"version": 1, "author": "xcode"},
-    })
-    write_json(os.path.join(root, "iOS/BlobPhone/Assets.xcassets/Contents.json"), {"info": {"version": 1, "author": "xcode"}})
-    print(f"Wrote {variant} icons")
+    write_json(os.path.join(mac_dir, "Contents.json"), {"images": images, **info})
+    alt_dir = os.path.join(mac_assets, "IconLight.imageset")
+    os.makedirs(alt_dir, exist_ok=True)
+    render_mac(alternate, 1024).save(os.path.join(alt_dir, "icon-light.png"))
+    write_json(os.path.join(alt_dir, "Contents.json"),
+               {"images": [{"idiom": "universal", "filename": "icon-light.png"}], **info})
+    write_json(os.path.join(mac_assets, "Contents.json"), info)
+    # iOS: AppIcon plus the alternate AppIconLight.
+    ios_assets = os.path.join(root, "iOS/BlobPhone/Assets.xcassets")
+    for set_name, variant in (("AppIcon", default), ("AppIconLight", alternate)):
+        d = os.path.join(ios_assets, f"{set_name}.appiconset")
+        os.makedirs(d, exist_ok=True)
+        render_ios(variant).save(os.path.join(d, "icon-1024.png"))
+        write_json(os.path.join(d, "Contents.json"), {
+            "images": [{"idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon-1024.png"}],
+            **info,
+        })
+    # Small previews for the in-app pickers.
+    for set_name, variant in (("IconPreviewBlob", default), ("IconPreviewLight", alternate)):
+        for assets, render in ((ios_assets, render_ios), (mac_assets, render_mac)):
+            d = os.path.join(assets, f"{set_name}.imageset")
+            os.makedirs(d, exist_ok=True)
+            render(variant, 1024).resize((180, 180), Image.LANCZOS).save(os.path.join(d, "preview.png"))
+            write_json(os.path.join(d, "Contents.json"),
+                       {"images": [{"idiom": "universal", "filename": "preview.png"}], **info})
+    write_json(os.path.join(ios_assets, "Contents.json"), info)
+    print(f"Wrote icons: default {default}, alternate {alternate}")
 
 
 def write_json(path, obj):
@@ -187,7 +205,7 @@ def write_json(path, obj):
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "preview":
         preview(sys.argv[2])
-    elif len(sys.argv) >= 3 and sys.argv[1] == "build":
-        build(sys.argv[2])
+    elif len(sys.argv) >= 2 and sys.argv[1] == "build":
+        build(*sys.argv[2:4])
     else:
         print(__doc__)

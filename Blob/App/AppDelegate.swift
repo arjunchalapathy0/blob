@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         services.start()
         rebuild()
         announceUpdateIfNeeded()
+        AppIconChoice.applyAtLaunch()
 
         NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
             .debounce(for: .milliseconds(400), scheduler: DispatchQueue.main)
