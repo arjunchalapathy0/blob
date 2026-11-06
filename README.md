@@ -45,7 +45,9 @@ The same project also builds a small iPhone app (iOS 17+). iOS doesn't let apps 
 - **Ask**: choose or paste a screenshot or photo and ask Claude about it (same API key setup).
 - **Claude**: live Claude Code status from your Mac. Turn on Settings → Claude Code → **Show on iPhone** in the Mac app; both devices need to be on the same Wi-Fi. Status updates while the iPhone app is open.
 
-To install: open `Blob.xcodeproj`, choose the **BlobPhone** scheme and your iPhone as the destination, set your Team on both the **BlobPhone** and **BlobIsland** targets, and press Run. On the iPhone, trust your developer profile under Settings → General → VPN & Device Management. A free Apple account works; apps installed that way expire after 7 days, so run again from Xcode to renew.
+**Without Xcode (SideStore):** every push to `main` builds `Blob.ipa` on GitHub Actions and attaches it to the **phone-latest** release. Set up [SideStore](https://sidestore.io) once (this step needs a computer). After that, open the release page on your iPhone, download `Blob.ipa`, and share it to SideStore. SideStore signs it with your Apple ID and refreshes it every 7 days from the phone.
+
+To install with Xcode: open `Blob.xcodeproj`, choose the **BlobPhone** scheme and your iPhone as the destination, set your Team on both the **BlobPhone** and **BlobIsland** targets, and press Run. On the iPhone, trust your developer profile under Settings → General → VPN & Device Management. A free Apple account works; apps installed that way expire after 7 days, so run again from Xcode to renew.
 
 ## Build
 

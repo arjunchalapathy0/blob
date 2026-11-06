@@ -1,0 +1,96 @@
+name: Build
+
+# Builds the iPhone app as an unsigned .ipa for SideStore (published to the "phone-latest"
+# release) and compile-checks the Mac app. SideStore signs the .ipa with your own Apple ID.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Blob/**"
+      - "iOS/**"
+      - "Shared/**"
+      - "project.yml"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  iphone:
+    name: iPhone (.ipa for SideStore)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project Blob.xcodeproj -target BlobPhone -configuration Release \
+            -sdk iphoneos SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tee build.log | grep -E "error:|warning: .*deprecated|BUILD" || true
+          test -d build/Release-iphoneos/Blob.app
+
+      - name: Package .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/Blob.app Payload/
+          zip -qry Blob.ipa Payload
+          ls -lh Blob.ipa
+
+      - name: Publish to the phone-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete phone-latest --yes --cleanup-tag || true
+          gh release create phone-latest Blob.ipa \
+            --title "Blob for iPhone (latest)" \
+            --notes "Built from ${GITHUB_SHA::7}. Open this page on your iPhone, download Blob.ipa, then share it to SideStore." \
+            --prerelease
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone-build-log
+          path: build.log
+
+  mac:
+    name: Mac (compile check)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project Blob.xcodeproj -target Blob -configuration Release \
+            SYMROOT="$PWD/build" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tee build.log | grep -E "error:|BUILD" || true
+          test -d build/Release/Blob.app
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-build-log
+          path: build.log
