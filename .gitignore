@@ -9,3 +9,4 @@ dist/
 Blob-source.zip
 Config/Local.xcconfig
 scripts/.update-run-*
+__pycache__/
