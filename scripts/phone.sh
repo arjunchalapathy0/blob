@@ -45,5 +45,6 @@ fi
 APP="$OUT/dd/Build/Products/Debug-iphoneos/Blob.app"
 xcrun devicectl device install app --device "$DEVICE" "$APP" > "$OUT/install.log" 2>&1 \
   || { grep -iE "error|unlock|trust" "$OUT/install.log" | head -n 5; exit 1; }
-xcrun devicectl device process launch --device "$DEVICE" app.blob.BlobPhone >/dev/null 2>&1 || true
+BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$APP/Info.plist")"
+xcrun devicectl device process launch --device "$DEVICE" "$BUNDLE_ID" >/dev/null 2>&1 || true
 echo "Installed on your iPhone."

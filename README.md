@@ -48,6 +48,8 @@ The same project also builds a small iPhone app (iOS 17+). iOS doesn't let apps 
 
 **Without Xcode (SideStore):** every push to `main` builds `Blob.ipa` on GitHub Actions and attaches it to the **phone-latest** release. Set up [SideStore](https://sidestore.io) once (this step needs a computer). After that, open the release page on your iPhone, download `Blob.ipa`, and share it to SideStore. SideStore signs it with your Apple ID and refreshes it every 7 days from the phone.
 
+**Building with a different Apple account** (e.g. a friend's phone): app IDs must be unique per account, so first run `./scripts/set-prefix.sh com.theirname`, reopen the project, and set their Team.
+
 **Quick update:** Blob Settings → Updates → **Update iPhone** (after updating the Mac app), or `git pull && ./scripts/phone.sh`. It builds and installs over the cable or Wi-Fi, and also renews the 7-day limit.
 
 To install with Xcode: open `Blob.xcodeproj`, choose the **BlobPhone** scheme and your iPhone as the destination, set your Team on both the **BlobPhone** and **BlobIsland** targets, and press Run. On the iPhone, trust your developer profile under Settings → General → VPN & Device Management. A free Apple account works; apps installed that way expire after 7 days, so run again from Xcode to renew.

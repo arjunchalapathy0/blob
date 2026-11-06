@@ -67,7 +67,7 @@ targets:
         com.apple.security.automation.apple-events: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.blob.Blob
+        PRODUCT_BUNDLE_IDENTIFIER: $(BLOB_BUNDLE_PREFIX).Blob
         PRODUCT_NAME: Blob
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
@@ -129,7 +129,7 @@ targets:
         NSCalendarsUsageDescription: Blob counts down to your next event in the Dynamic Island.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.blob.BlobPhone
+        PRODUCT_BUNDLE_IDENTIFIER: $(BLOB_BUNDLE_PREFIX).BlobPhone
         PRODUCT_NAME: Blob
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: AppIconLight
@@ -158,7 +158,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.blob.BlobPhone.Island
+        PRODUCT_BUNDLE_IDENTIFIER: $(BLOB_BUNDLE_PREFIX).BlobPhone.Island
         PRODUCT_NAME: BlobIsland
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic

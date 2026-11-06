@@ -1,3 +1,9 @@
 // Signing for all targets. Your Apple team lives in Local.xcconfig (not committed),
 // which scripts/bootstrap.sh and scripts/update.sh write for you.
+//
+// App IDs must be unique per Apple account. Anyone other than the original author sets their own
+// prefix in Local.xcconfig, e.g.  BLOB_BUNDLE_PREFIX = com.yourname
+// (or run ./scripts/set-prefix.sh com.yourname).
+BLOB_BUNDLE_PREFIX = app.blob
+
 #include? "Local.xcconfig"
