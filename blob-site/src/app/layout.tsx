@@ -1,21 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Newsreader } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { site } from "@/lib/site";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({
+const sans = Geist({
   subsets: ["latin"],
-  axes: ["wdth"],
   display: "swap",
-  variable: "--font-display",
+  variable: "--font-sans",
 });
 
-const text = Newsreader({
+// Only for the italic accent words in headlines.
+const serif = Instrument_Serif({
   subsets: ["latin"],
-  // Preloaded, but never swapped in late: on a slow first visit the metric-matched fallback stays,
-  // so the copy never shifts. Every later visit has it cached.
-  display: "optional",
-  variable: "--font-text",
+  weight: "400",
+  style: "italic",
+  display: "swap",
+  variable: "--font-serif",
+});
+
+const mono = Geist_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -33,17 +40,16 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#C9CACD" },
-    { media: "(prefers-color-scheme: dark)", color: "#17181A" },
+    { color: "#000000" },
   ],
 };
 
 // Applies a saved appearance before first paint, so there is no flash.
-const themeScript = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+const themeScript = `document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${text.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

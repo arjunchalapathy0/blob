@@ -6,6 +6,7 @@ import { Hero } from "@/components/Hero";
 import { Scenes } from "@/components/Scenes";
 import { Moods } from "@/components/Moods";
 import { Everything } from "@/components/Everything";
+import { Plates } from "@/components/Plates";
 import { Phone } from "@/components/Phone";
 import { Footer, GetIt, Privacy } from "@/components/Closing";
 
@@ -21,6 +22,7 @@ export default function Home() {
         <Suspense><Hero /></Suspense>
         <Suspense><Scenes /></Suspense>
         <Suspense><Moods /></Suspense>
+        <Plates />
         <Suspense><Everything /></Suspense>
         <Privacy />
         <Suspense><Phone /></Suspense>

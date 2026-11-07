@@ -1,14 +1,19 @@
+import { Eyebrow } from "./Chrome";
+import { AmbientVideo } from "./AmbientVideo";
 import { site } from "@/lib/site";
 
 export function Privacy() {
   return (
     <section id="privacy" className="section privacy" aria-labelledby="privacy-title">
       <div className="wrap privacy-grid">
-        <h2 id="privacy-title" className="h2">
+        <div className="privacy-head">
+          <Eyebrow n="06">Privacy</Eyebrow>
+          <h2 id="privacy-title" className="h2" data-reveal="">
           <span className="blob-anchor" data-blob="sit" data-blob-size="90" data-blob-x="0.2" data-blob-mood="curious" />
-          What it sees, and what it needs.
+          What it sees, and <em>what it needs.</em>
         </h2>
-        <div className="rows">
+        </div>
+        <div className="rows" data-reveal="">
           <h3 className="rows-title">What it sees</h3>
           <ul>
             <li>Your voice becomes text on your Mac, with Whisper. The model downloads once, about 150 MB, and works offline after that.</li>
@@ -17,7 +22,7 @@ export function Privacy() {
             <li>Copies from password managers never reach the clipboard history.</li>
           </ul>
         </div>
-        <div className="rows">
+        <div className="rows" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
           <h3 className="rows-title">What it needs</h3>
           <ul>
             <li>macOS 14 or later, on Apple silicon or Intel.</li>
@@ -34,12 +39,16 @@ export function Privacy() {
 export function GetIt() {
   return (
     <section id="get" className="section get" data-mood="curious" aria-labelledby="get-title">
+      <AmbientVideo className="get-light" />
       <div className="wrap get-grid">
+        <div className="get-head">
+        <Eyebrow n="08">Get Blob</Eyebrow>
         <h2 id="get-title" className="display get-title">
           <span className="blob-anchor" data-blob="sit" data-blob-size="150" data-blob-x="0.78" data-blob-mood="happy" />
-          Move Blob in.
+          Move Blob <em>in.</em>
         </h2>
-        <div className="get-copy">
+        </div>
+        <div className="get-copy" data-reveal="">
           {site.downloadUrl ? (
             <p className="body">Download it, drag it to Applications, and hold right ⌥.</p>
           ) : (
@@ -67,7 +76,7 @@ export function Footer() {
     <footer className="footer">
       <div className="blob-anchor footer-anchor" data-blob="sit" data-blob-size="70" data-blob-x="0.5" data-blob-mood="sleepy" data-blob-priority="600" />
       <div className="wrap footer-row">
-        <p>Blob. It lives in the notch.</p>
+        <p><span className="wordmark">Blob</span> It lives in the notch.</p>
         <p className="fine">Not affiliated with Apple. MacBook and macOS are trademarks of Apple Inc.</p>
       </div>
     </footer>

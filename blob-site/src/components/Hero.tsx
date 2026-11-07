@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Desktop, EMPTY_DESKTOP, type DesktopState } from "./Desktop";
 import { Keycap } from "./Keycap";
+import { Eyebrow } from "./Chrome";
 import { Notch } from "./Notch";
 import { useNotchScale } from "@/lib/useNotchScale";
 import { Cancelled, runScript } from "@/lib/agent";
@@ -186,14 +187,17 @@ export function Hero() {
     <section id="demo" ref={section} className="demo" aria-labelledby="demo-title">
       <div className="wrap">
         <div className="demo-head">
-          <h2 id="demo-title" className="h2">Go on, try it.</h2>
-          <p className="body">
+          <div>
+            <Eyebrow n="01">Try it</Eyebrow>
+            <h2 id="demo-title" className="h2" data-reveal="">Go on, <em>try it.</em></h2>
+          </div>
+          <p className="body" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
             This is the real notch, at real proportions, blown up. Hold the key, or right ⌥ on your keyboard, and
             Blob hears you. Or pick something and watch it get typed in.
           </p>
         </div>
 
-        <div className="mac">
+        <div className="mac" data-reveal="">
           <div className="blob-anchor" data-blob="sit" data-blob-size="96" data-blob-x="0.86" data-blob-mood="notch" />
           <div className="mac-screen">
             <Notch scale={notchScale} label="The notch: hover or tap it to open, or hold right Option to talk" />

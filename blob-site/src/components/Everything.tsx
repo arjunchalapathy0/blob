@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Eyebrow } from "./Chrome";
 import { Notch } from "./Notch";
 import { useNotchScale } from "@/lib/useNotchScale";
 import { releaseNotch, setNotch, takeNotch, type Wing } from "@/lib/notch";
@@ -54,8 +55,9 @@ export function Everything() {
     <section id="everything" className="section everything" aria-labelledby="everything-title">
       <div className="wrap everything-grid">
         <div className="everything-side">
-          <h2 id="everything-title" className="h2">And it does all this, too.</h2>
-          <p className="body">Point at one and the notch shows you. Every one of them can be switched off.</p>
+          <Eyebrow n="05">Everything else</Eyebrow>
+          <h2 id="everything-title" className="h2" data-reveal="">And it does <em>all this,</em> too.</h2>
+          <p className="body" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>Point at one and the notch shows you. Every one of them can be switched off.</p>
           <div className="mac small sticky-mac">
             <div className="blob-anchor" data-blob="sit" data-blob-size="84" data-blob-x="0.82" data-blob-mood="notch" />
             <div className="mac-screen short">

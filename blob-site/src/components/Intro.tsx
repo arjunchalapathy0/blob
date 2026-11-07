@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { AmbientVideo } from "./AmbientVideo";
 import { notchPath } from "@/lib/notchPath";
 import { Spring, Springs } from "@/lib/spring";
 import { reducedMotion, subscribe } from "@/lib/ticker";
@@ -18,6 +19,7 @@ export function Intro() {
   const lines = useRef<(HTMLSpanElement | null)[]>([]);
   const peekAnchor = useRef<HTMLDivElement>(null);
   const titleAnchor = useRef<HTMLDivElement>(null);
+  const light = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = section.current;
@@ -89,6 +91,8 @@ export function Intro() {
         line.style.opacity = String(v);
         line.style.transform = `translateY(${(1 - v) * 60}px)`;
       });
+      // The room's light comes up behind the headline as the camera arrives.
+      if (light.current) light.current.style.opacity = String(smooth((p - 0.36) / 0.2));
       if (title.current) title.current.style.visibility = p > 0.45 ? "visible" : "hidden";
     });
     return () => {
@@ -114,6 +118,8 @@ export function Intro() {
           </div>
         </div>
 
+        <AmbientVideo ref={light} className="intro-light" />
+
         <p ref={caption} className="intro-caption">
           There’s a notch at the top of your Mac.
           <br />
@@ -124,7 +130,7 @@ export function Intro() {
           <div ref={titleAnchor} className="blob-anchor intro-title-anchor" data-blob="sit" data-blob-size="210" data-blob-mood="happy" data-blob-off="" />
           {["Hold ⌥.", "Say it.", "Let go."].map((l, i) => (
             <span key={l} ref={(n) => { lines.current[i] = n; }} className="intro-line">
-              {i === 0 ? (<>Hold <span className="h-key"><span aria-hidden="true">⌥</span><span className="sr-only">right Option</span></span>.</>) : l}
+              {i === 0 ? (<>Hold <span className="h-key"><span aria-hidden="true">⌥</span><span className="sr-only">right Option</span></span>.</>) : i === 2 ? <em>Let go.</em> : l}
             </span>
           ))}
         </h1>

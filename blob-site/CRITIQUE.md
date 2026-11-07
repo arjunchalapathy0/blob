@@ -51,3 +51,12 @@ They chose a mix of *cinematic* and *Blob is the star*, and named “too empty�
 | The demo sat empty until you acted. | It runs through the requests by itself while on screen, until you touch it. |
 | Moods were a small panel. | A 300px Blob in the middle of the page with the mood's name set enormous behind it. |
 | Blob covered text on its perches (it was placed by its unscaled box). | Placed by its bottom centre, which is what scales. |
+
+## Round 5 — "it's laggy and the font is bad"
+
+- **Lag:** an A/B profile showed one culprit: a `drop-shadow` filter on the travelling Blob, re-rasterized every frame. Removing it took scroll frames from ~50 ms to a steady 16.7 ms.
+- **Type:** Bricolage/Newsreader replaced with Geist (display + body), Instrument Serif italic for one accent word per headline, Geist Mono for chapter labels. Fixed scale: 152 / 104 / 72 / 24 / 19 / 15 / 12.
+- **Pacing:** the page reads as chapters (01 Try it … 08 Get Blob), with larger section spacing, reveal-on-scroll, and a reading-progress line in the bar.
+- **Mood:** a 50 KB rendered loop (dust in a shaft of light from the notch) behind the headline and the closing chapter. It plays only on screen and stays still with reduced motion.
+- **Imagery:** an interlude of three art-directed renders of Blob (the notch, the ⌥ key, asleep). They are renders, not photos; real photography can replace them in `public/media/`.
+- Lighthouse after: mobile 95 / 100 / 100 / 100, desktop 100 ×4, CLS 0.

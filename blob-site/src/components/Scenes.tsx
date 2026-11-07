@@ -7,6 +7,7 @@ import { releaseNotch, setAgent, setNotch, takeNotch } from "@/lib/notch";
 import { SCENES } from "@/lib/requests";
 import { reducedMotion, subscribe } from "@/lib/ticker";
 import { site } from "@/lib/site";
+import { Eyebrow } from "./Chrome";
 import { Notch } from "./Notch";
 import { useNotchScale } from "@/lib/useNotchScale";
 
@@ -182,6 +183,7 @@ export function Scenes() {
       <div className="scenes-pin">
         <div className="wrap scenes-grid">
           <div className="scenes-copy">
+            <Eyebrow n="02">A day with Blob</Eyebrow>
             <h2 id="scenes-title" className="h2">A few things it did today.</h2>
             <div className="scene-copies">
               {LIST.map((s, i) => (

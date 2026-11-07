@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Eyebrow } from "./Chrome";
 import { BlobFigure } from "./BlobFigure";
 import { reducedMotion, subscribe } from "@/lib/ticker";
 
@@ -27,8 +28,9 @@ export function Phone() {
     <section id="iphone" className="section phone-section" data-mood="happy" aria-labelledby="phone-title">
       <div className="wrap phone-grid">
         <div className="phone-copy">
-          <h2 id="phone-title" className="h2">A little of it comes with you.</h2>
-          <p className="body">
+          <Eyebrow n="07">iPhone</Eyebrow>
+          <h2 id="phone-title" className="h2" data-reveal="">A little of it <em>comes with you.</em></h2>
+          <p className="body" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
             The iPhone app puts your timers and your next meeting in the Dynamic Island and on the Lock Screen. Pair it
             with your Mac using a six-digit code on the same Wi-Fi, and you can see Claude working from the couch, or
             type your Mac a task and watch it happen.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Eyebrow } from "./Chrome";
 import { MOODS, type Mood } from "@/lib/mood";
 
 /** Blob, centre stage and big, in whichever mood you pick. */
@@ -12,8 +13,11 @@ export function Moods() {
     <section id="moods" className="section moods" aria-labelledby="moods-title">
       <div className="wrap">
         <div className="moods-head">
-          <h2 id="moods-title" className="h2">It never says a word.</h2>
-          <p className="body">
+          <div>
+            <Eyebrow n="03">Moods</Eyebrow>
+            <h2 id="moods-title" className="h2" data-reveal="">It never says <em>a word.</em></h2>
+          </div>
+          <p className="body" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
             Blob talks with its whole body: six moods, the app’s own springs, a blink every 4.6 seconds. Pick one.
           </p>
         </div>
