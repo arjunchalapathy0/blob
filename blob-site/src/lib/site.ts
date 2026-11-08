@@ -4,7 +4,7 @@
 export const site = {
   name: "Blob",
   /** Public URL of the deployed site (used for metadata and the share image). */
-  siteUrl: "https://blob.example",
+  siteUrl: "https://blobnotch.com",
   /** The source repository. It is private today, so this link works only for invited people. */
   sourceUrl: "https://github.com/arjunchalapathy0/blob",
   /**
