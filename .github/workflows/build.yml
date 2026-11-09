@@ -10,6 +10,7 @@ on:
       - "iOS/**"
       - "Shared/**"
       - "project.yml"
+      - "Windows/**"
       - ".github/workflows/build.yml"
   workflow_dispatch:
 
@@ -98,3 +99,15 @@ jobs:
         with:
           name: mac-build-log
           path: build.log
+
+  windows:
+    name: Windows (compile check)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build
+        run: dotnet build Windows/Blob/Blob.csproj -c Release

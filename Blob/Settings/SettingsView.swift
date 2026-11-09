@@ -222,6 +222,7 @@ struct SettingsView: View {
                         }
                     }
                 }
+                if !updates.updatesFromWeb {
                 LabeledContent("iPhone") {
                     HStack {
                         Text(updates.phoneStatus ?? "Plug in or same Wi-Fi").foregroundStyle(.secondary).lineLimit(1)
@@ -236,10 +237,15 @@ struct SettingsView: View {
                         Button("Change…") { chooseSource() }
                     }
                 }
+                }
             } header: {
                 Text("Updates")
             } footer: {
-                Text("Update pulls the latest code into the source folder, rebuilds Blob with Xcode, and relaunches it. Your permissions carry over.")
+                if updates.updatesFromWeb {
+                    Text("Update downloads the latest Blob from blobnotch.app and relaunches it.")
+                } else {
+                    Text("Update pulls the latest code into the source folder, rebuilds Blob with Xcode, and relaunches it. Your permissions carry over.")
+                }
             }
 
             Section("Permissions") {
@@ -272,8 +278,9 @@ struct SettingsView: View {
         case .checking: return "Checking…"
         case .upToDate: return "Up to date"
         case .available(let count, let summary):
+            if updates.updatesFromWeb { return summary }
             return "\(count) new change\(count == 1 ? "" : "s")" + (summary.isEmpty ? "" : ": \(summary)")
-        case .updating: return "Building the new version…"
+        case .updating: return updates.updatesFromWeb ? "Downloading…" : "Building the new version…"
         case .failed(let message): return message
         }
     }

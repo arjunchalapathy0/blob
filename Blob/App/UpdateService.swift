@@ -1,9 +1,12 @@
 import AppKit
 import Security
 
-/// Updates Blob from its source folder: git pull, rebuild with the same signing team,
-/// then replace the installed app and relaunch. Building locally with your own
-/// certificate keeps macOS permissions (Accessibility, Calendar, Camera) across updates.
+/// Updates Blob in one of two ways:
+/// - From its source folder (a copy you built yourself): git pull, rebuild with the same
+///   signing team, then replace the installed app and relaunch. Building locally with your
+///   own certificate keeps macOS permissions (Accessibility, Calendar, Camera) across updates.
+/// - From blobnotch.app (a copy you downloaded): compare against version.json, download
+///   the new Blob.zip, swap it in and relaunch.
 @MainActor
 final class UpdateService: ObservableObject {
     enum State: Equatable {
@@ -24,6 +27,18 @@ final class UpdateService: ObservableObject {
     private var timer: Timer?
 
     static let sourcePathKey = "updateSourcePath"
+    static let feedURL = URL(string: "https://blobnotch.app/version.json")!
+
+    /// True when this copy was downloaded rather than built from a source folder.
+    var updatesFromWeb: Bool { sourceURL == nil }
+
+    private struct Feed: Decodable {
+        let version: String
+        let build: Int
+        let url: String
+        let notes: String?
+    }
+    private var feed: Feed?
 
     init(notices: NoticeCenter) { self.notices = notices }
 
@@ -64,7 +79,7 @@ final class UpdateService: ObservableObject {
     func check() async {
         guard state != .updating, state != .checking else { return }
         guard let source = sourceURL else {
-            state = .failed("Choose Blob’s source folder in Settings.")
+            await checkWeb()
             return
         }
         state = .checking
@@ -84,7 +99,11 @@ final class UpdateService: ObservableObject {
     }
 
     func update() {
-        guard !isUpdating, let source = sourceURL else { return }
+        guard !isUpdating else { return }
+        guard let source = sourceURL else {
+            updateFromWeb()
+            return
+        }
         state = .updating
         notices.message("arrow.triangle.2.circlepath", "Updating…", duration: 900)
         Task {
@@ -141,6 +160,95 @@ final class UpdateService: ObservableObject {
             NSApp.terminate(nil)
         } catch {
             state = .failed("Couldn’t install: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Downloaded copies
+
+    private static var currentBuild: Int {
+        Int(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0") ?? 0
+    }
+
+    private func checkWeb() async {
+        state = .checking
+        var request = URLRequest(url: Self.feedURL)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 20
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+            let latest = try JSONDecoder().decode(Feed.self, from: data)
+            feed = latest
+            lastChecked = Date()
+            let wasAvailable = isAvailable
+            if latest.build > Self.currentBuild {
+                state = .available(count: 1, summary: "Blob \(latest.version)" + (latest.notes.map { " — \($0)" } ?? ""))
+                if !wasAvailable { notices.message("arrow.down.circle.fill", "Update ready", duration: 3) }
+            } else {
+                state = .upToDate
+            }
+        } catch {
+            lastChecked = Date()
+            state = .failed("Couldn’t reach blobnotch.app.")
+        }
+    }
+
+    private func updateFromWeb() {
+        guard let feed, let url = URL(string: feed.url, relativeTo: Self.feedURL) else {
+            Task { await checkWeb() }
+            return
+        }
+        state = .updating
+        notices.message("arrow.triangle.2.circlepath", "Updating…", duration: 900)
+        Task {
+            do {
+                let (zip, response) = try await URLSession.shared.download(from: url)
+                guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+                let dir = FileManager.default.temporaryDirectory.appendingPathComponent("blob-update-\(UUID().uuidString)")
+                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                let unzip = await Self.exec("/usr/bin/ditto", ["-x", "-k", zip.path, dir.path])
+                let app = dir.appendingPathComponent("Blob.app")
+                guard unzip == 0, FileManager.default.fileExists(atPath: app.path) else { throw URLError(.cannotDecodeContentData) }
+                // It came from our own site over HTTPS; don't make macOS ask again.
+                _ = await Self.exec("/usr/bin/xattr", ["-dr", "com.apple.quarantine", app.path])
+                installDownloaded(app.path)
+            } catch {
+                state = .failed("Download failed. Try again, or get it from blobnotch.app.")
+                notices.message("exclamationmark.triangle.fill", "Update failed", duration: 3)
+            }
+        }
+    }
+
+    /// Same as update.sh's install step, for copies that have no source folder.
+    private func installDownloaded(_ newApp: String) {
+        let current = Bundle.main.bundlePath
+        let destination = current.hasPrefix("/Applications/") ? current : "/Applications/Blob.app"
+        let script = """
+        while kill -0 "$3" 2>/dev/null; do sleep 0.2; done
+        rm -rf "$2" && ditto "$1" "$2" && open "$2"
+        """
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/bash")
+        p.arguments = ["-c", script, "blob-install", newApp, destination, String(ProcessInfo.processInfo.processIdentifier)]
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        do {
+            try p.run()
+            NSApp.terminate(nil)
+        } catch {
+            state = .failed("Couldn’t install: \(error.localizedDescription)")
+        }
+    }
+
+    private static func exec(_ tool: String, _ args: [String]) async -> Int32 {
+        await withCheckedContinuation { continuation in
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: tool)
+            p.arguments = args
+            p.standardOutput = FileHandle.nullDevice
+            p.standardError = FileHandle.nullDevice
+            p.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
+            do { try p.run() } catch { continuation.resume(returning: -1) }
         }
     }
 

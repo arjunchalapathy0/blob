@@ -1,0 +1,138 @@
+name: Mac release
+
+# Builds Blob.app, zips it and publishes it on the website as blobnotch.app/Blob.zip,
+# along with blobnotch.app/version.json, which the app's Update button reads.
+#
+# Run it from the Actions tab ("Run workflow"), or push a tag like v1.1.0.
+#
+# Signing: without an Apple Developer account the app can't be notarized, so the first
+# launch needs System Settings → Privacy & Security → Open Anyway.
+# - If the MAC_SIGN_P12 / MAC_SIGN_PASSWORD secrets are set (see scripts/make-signing-cert.sh),
+#   the app is signed with that self-signed certificate. macOS then keeps permissions
+#   (Accessibility, Microphone…) across updates.
+# - Otherwise it is ad-hoc signed, and permissions may need granting again after an update.
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "One line about what's new (shown in Blob's Update button)"
+        required: false
+        default: ""
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mac-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install tools
+        run: brew install xcodegen cmake
+
+      - name: Vendor MediaRemoteAdapter (Now Playing on macOS 15.4+)
+        run: ./scripts/fetch-mediaremote-adapter.sh
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Signing identity
+        id: sign
+        env:
+          P12: ${{ secrets.MAC_SIGN_P12 }}
+          P12_PASSWORD: ${{ secrets.MAC_SIGN_PASSWORD }}
+        run: |
+          if [ -n "$P12" ]; then
+            KC="$RUNNER_TEMP/blob.keychain-db"
+            security create-keychain -p ci "$KC"
+            security set-keychain-settings -lut 3600 "$KC"
+            security unlock-keychain -p ci "$KC"
+            echo "$P12" | base64 --decode > "$RUNNER_TEMP/blob.p12"
+            security import "$RUNNER_TEMP/blob.p12" -k "$KC" -P "$P12_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KC" >/dev/null
+            security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+            echo "identity=Blob Self-Signed" >> "$GITHUB_OUTPUT"
+          else
+            echo "identity=-" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Version
+        id: version
+        run: |
+          MARKETING=$(grep -m1 'MARKETING_VERSION:' project.yml | sed -E 's/.*"(.*)".*/\1/')
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then MARKETING="${GITHUB_REF#refs/tags/v}"; fi
+          BUILD=$((100 + GITHUB_RUN_NUMBER))
+          echo "marketing=$MARKETING" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: |
+          if ! xcodebuild -project Blob.xcodeproj -target Blob -configuration Release \
+               SYMROOT="$PWD/build" \
+               MARKETING_VERSION="${{ steps.version.outputs.marketing }}" \
+               CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build }}" \
+               CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+               CODE_SIGN_IDENTITY=- \
+               ENABLE_HARDENED_RUNTIME=NO \
+               OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
+               build > build.log 2>&1; then
+            grep -E "error:" build.log | sort -u | head -50
+            exit 1
+          fi
+          if [ "${{ steps.sign.outputs.identity }}" != "-" ]; then
+            # Re-sign with the stable self-signed identity (inside out: framework, then app).
+            ID="${{ steps.sign.outputs.identity }}"
+            FW=build/Release/Blob.app/Contents/Frameworks/MediaRemoteAdapter.framework
+            [ -d "$FW" ] && codesign --force --sign "$ID" --timestamp=none "$FW"
+            codesign --force --sign "$ID" --timestamp=none \
+              --entitlements <(codesign -d --entitlements :- build/Release/Blob.app 2>/dev/null) \
+              build/Release/Blob.app
+          fi
+          codesign --verify --deep --strict build/Release/Blob.app
+          codesign -dv build/Release/Blob.app 2>&1 | grep -E "Identifier|Authority|Signature" || true
+
+      - name: Package
+        run: |
+          ditto -c -k --keepParent build/Release/Blob.app Blob.zip
+          ls -lh Blob.zip
+
+      - name: Publish to the website
+        env:
+          NOTES: ${{ github.event.inputs.notes }}
+        run: |
+          mkdir -p blob-site/public
+          cp Blob.zip blob-site/public/Blob.zip
+          jq -n \
+            --arg version "${{ steps.version.outputs.marketing }}" \
+            --argjson build "${{ steps.version.outputs.build }}" \
+            --arg url "/Blob.zip" \
+            --arg notes "$NOTES" \
+            --arg sha "${GITHUB_SHA::7}" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson bytes "$(stat -f%z Blob.zip)" \
+            --arg minimumSystem "14.0" \
+            '{version:$version, build:$build, url:$url, notes:(if $notes == "" then null else $notes end), sha:$sha, date:$date, bytes:$bytes, minimumSystem:$minimumSystem}' \
+            > blob-site/public/version.json
+          cat blob-site/public/version.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blob-site/public/Blob.zip blob-site/public/version.json
+          git commit -m "Publish Blob ${{ steps.version.outputs.marketing }} (build ${{ steps.version.outputs.build }}) for Mac"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep $((i * 5)); done
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-release-log
+          path: build.log
