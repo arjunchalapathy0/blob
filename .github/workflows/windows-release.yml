@@ -1,0 +1,94 @@
+name: Windows release
+
+# Builds Blob for Windows and publishes it on the website as
+# blobnotch.app/windows/Blob-Windows.zip, plus blobnotch.app/windows/version.json for the
+# app's Update button. Run it from the Actions tab ("Run workflow"), or push a tag like win-v1.0.0.
+#
+# The build needs the free .NET 8 Desktop Runtime on the PC (Windows offers to install it the
+# first time). That keeps the download around 8 MB instead of 80 MB.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g. 1.0.0)"
+        required: false
+        default: "1.0.0"
+      notes:
+        description: "One line about what's new (shown in Blob's Update button)"
+        required: false
+        default: ""
+  push:
+    tags: ["win-v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ "$GITHUB_REF" == refs/tags/win-v* ]]; then VERSION="${GITHUB_REF#refs/tags/win-v}"; fi
+          [ -z "$VERSION" ] && VERSION="1.0.0"
+          BUILD=$((100 + GITHUB_RUN_NUMBER))
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        run: |
+          dotnet publish Windows/Blob/Blob.csproj -c Release -r win-x64 --self-contained false \
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -p:AssemblyVersion=${{ steps.version.outputs.version }}.${{ steps.version.outputs.build }} \
+            -p:FileVersion=${{ steps.version.outputs.version }}.${{ steps.version.outputs.build }} \
+            -o out/Blob
+          ls -la out/Blob
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path out/Blob -DestinationPath Blob-Windows.zip -CompressionLevel Optimal
+          Get-Item Blob-Windows.zip | Select-Object Name, Length
+
+      - name: Publish to the website
+        env:
+          NOTES: ${{ github.event.inputs.notes }}
+        run: |
+          mkdir -p blob-site/public/windows
+          cp Blob-Windows.zip blob-site/public/windows/Blob-Windows.zip
+          BYTES=$(wc -c < Blob-Windows.zip | tr -d ' ')
+          jq -n \
+            --arg version "${{ steps.version.outputs.version }}" \
+            --argjson build "${{ steps.version.outputs.build }}" \
+            --arg url "/windows/Blob-Windows.zip" \
+            --arg notes "$NOTES" \
+            --arg sha "${GITHUB_SHA::7}" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson bytes "$BYTES" \
+            '{version:$version, build:$build, url:$url, notes:(if $notes == "" then null else $notes end), sha:$sha, date:$date, bytes:$bytes, runtime:".NET 8 Desktop Runtime"}' \
+            > blob-site/public/windows/version.json
+          cat blob-site/public/windows/version.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blob-site/public/windows
+          git commit -m "Publish Blob ${{ steps.version.outputs.version }} (build ${{ steps.version.outputs.build }}) for Windows"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep $((i * 5)); done

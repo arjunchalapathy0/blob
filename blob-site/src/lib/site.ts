@@ -7,11 +7,7 @@ export const site = {
   siteUrl: "https://blobnotch.app",
   /** The source repository. It is private today, so this link works only for invited people. */
   sourceUrl: "https://github.com/arjunchalapathy0/blob",
-  /**
-   * A public, notarized download (e.g. Blob.zip from scripts/release.sh on a public release).
-   * Leave empty until one exists; the page then offers the source instead.
-   */
-  downloadUrl: "",
+  // Downloads come from src/lib/releases.ts, which reads what the release workflows published.
   /**
    * Real screen recordings of Blob, dropped into public/recordings/. Each entry renders a <video>
    * next to the matching scene. Leave empty to show only the recreations.

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Lets the project compile-check on Linux/macOS too (it only runs on Windows). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Blob</AssemblyName>
+    <RootNamespace>Blob</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Blob.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.1</FileVersion>
+    <Product>Blob</Product>
+    <Description>Blob lives at the top of your screen and does what you say.</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <StartupObject>Blob.Program</StartupObject>
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio.WinMM" Version="2.2.1" />
+    <PackageReference Include="Whisper.net" Version="1.7.4" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.7.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Blob.ico" />
+  </ItemGroup>
+
+</Project>

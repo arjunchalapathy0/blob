@@ -1,6 +1,7 @@
 import { Eyebrow } from "./Chrome";
 import { AmbientVideo } from "./AmbientVideo";
 import { site } from "@/lib/site";
+import { megabytes, releases } from "@/lib/releases";
 
 export function Privacy() {
   return (
@@ -37,6 +38,7 @@ export function Privacy() {
 }
 
 export function GetIt() {
+  const { mac, windows } = releases;
   return (
     <section id="get" className="section get" data-mood="curious" aria-labelledby="get-title">
       <AmbientVideo className="get-light" />
@@ -49,22 +51,53 @@ export function GetIt() {
         </h2>
         </div>
         <div className="get-copy" data-reveal="">
-          {site.downloadUrl ? (
-            <p className="body">Download it, drag it to Applications, and hold right ⌥.</p>
+          {mac || windows ? (
+            <>
+              <p className="body">Download it, open it, and hold right ⌥ (right Alt on Windows).</p>
+              <p className="links">
+                {mac && (
+                  <a className="button primary" href={mac.url} download>
+                    Download for Mac <span className="button-meta">{mac.version} · {megabytes(mac.bytes)}</span>
+                  </a>
+                )}
+                {windows && (
+                  <a className={mac ? "button" : "button primary"} href={windows.url} download>
+                    Download for Windows <span className="button-meta">{windows.version} · {megabytes(windows.bytes)}</span>
+                  </a>
+                )}
+              </p>
+              <details className="first-open">
+                <summary className="link">First time opening it</summary>
+                {mac && (
+                  <p className="fine">
+                    <strong>Mac</strong> (macOS 14 or later): unzip, drag Blob to Applications and open it. Blob isn’t
+                    notarized by Apple yet, so macOS stops it the first time. Open System Settings → Privacy &amp; Security,
+                    scroll down and click Open Anyway. After that, Blob updates itself from Settings.
+                  </p>
+                )}
+                {windows && (
+                  <p className="fine">
+                    <strong>Windows</strong> (Windows 10 or 11): unzip and run Blob.exe. Windows SmartScreen may say it
+                    doesn’t recognise the app: click More info → Run anyway. If Windows asks for the .NET 8 Desktop
+                    Runtime, click Yes to install it (free, from Microsoft). Blob lives in a small pill at the top of
+                    your screen, since most PCs don’t have a notch.
+                  </p>
+                )}
+              </details>
+            </>
           ) : (
-            <p className="body">
-              There’s no download yet. Blob is built from its source: clone it, run one script, press Run in Xcode.
-              It takes about five minutes, most of it Xcode.
-            </p>
+            <>
+              <p className="body">
+                There’s no download yet. Blob is built from its source: clone it, run one script, press Run in Xcode.
+                It takes about five minutes, most of it Xcode.
+              </p>
+              <pre className="cmd" aria-label="Build steps"><code>{`./scripts/bootstrap.sh\nopen Blob.xcodeproj`}</code></pre>
+            </>
           )}
-          <pre className="cmd" aria-label="Build steps"><code>{`./scripts/bootstrap.sh\nopen Blob.xcodeproj`}</code></pre>
           <p className="links">
-            {site.downloadUrl && (
-              <a className="button primary" href={site.downloadUrl}>Download Blob</a>
-            )}
-            <a className={site.downloadUrl ? "button" : "button primary"} href={site.sourceUrl}>Read the code</a>
+            <a className="button" href={site.sourceUrl}>Read the code</a>
           </p>
-          <p className="fine">The repository is private for now, so the code is open to people who’ve been invited.</p>
+          <p className="fine">The code is private for now, open to people who’ve been invited.</p>
         </div>
       </div>
     </section>

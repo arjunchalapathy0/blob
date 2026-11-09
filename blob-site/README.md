@@ -16,11 +16,19 @@ npm run build && npm start
 
 All in [`src/lib/site.ts`](src/lib/site.ts):
 
-- `downloadUrl` — set it when there's a public, notarized download. Until then the page offers the
-  source and says plainly that there's no download yet.
 - `sourceUrl` — the repository (private today, so only invited people can open it).
 - `siteUrl` — the deployed URL, used for metadata and the share image.
 - `recordings` — real screen recordings (see below).
+
+## Downloads
+
+The download buttons appear by themselves once a release workflow has published a build:
+
+- **Mac:** Actions → *Mac release* → Run workflow. It builds Blob.app, and commits
+  `public/Blob.zip` and `public/version.json` (which the app's Update button reads).
+- **Windows:** Actions → *Windows release* → Run workflow. It commits `public/windows/`.
+
+Vercel redeploys on that commit. See `src/lib/releases.ts`.
 
 ## Adding real recordings
 
