@@ -72,6 +72,10 @@ jobs:
       - name: Publish to the website
         env:
           NOTES: ${{ github.event.inputs.notes }}
+          # Git Bash on Windows rewrites arguments that start with "/" into Windows paths
+          # ("/windows/x.zip" -> "C:/Program Files/Git/windows/x.zip"). Don't.
+          MSYS_NO_PATHCONV: "1"
+          MSYS2_ARG_CONV_EXCL: "*"
         run: |
           mkdir -p blob-site/public/windows
           cp Blob-Windows.zip blob-site/public/windows/Blob-Windows.zip
