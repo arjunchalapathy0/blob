@@ -192,5 +192,6 @@ Each hook runs the Blob binary in a headless mode that writes one small JSON fil
 - Wing widths per activity: `LiveActivity.wingWidth`
 - Character motion: `Mood.pose(at:)` in `Blob/Core/Character/Mood.swift`
 - Colors: `Blob/Core/Theme.swift` (black surface, white ink at a few opacities, one grey)
+- Vihaan Helped with this project btw
 
 </details>
