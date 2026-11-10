@@ -50,7 +50,7 @@ targets:
         NSHumanReadableCopyright: ""
         NSCalendarsFullAccessUsageDescription: Blob shows your next events in the notch.
         NSCalendarsUsageDescription: Blob shows your next events in the notch.
-        NSCameraUsageDescription: Blob shows a mirror when you open the Camera tab.
+        NSCameraUsageDescription: Blob shows a mirror when you open the Camera tab, and checks it’s you if you turn on face unlock.
         NSMicrophoneUsageDescription: Blob listens while you hold the right Option key, and turns your words into text on this Mac.
         NSAppleEventsUsageDescription: Blob reads and controls Music and Spotify, and can toggle dark mode.
         BlobSourcePath: $(PROJECT_DIR)

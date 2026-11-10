@@ -88,8 +88,18 @@ public sealed class AskPanel : IPanel
         {
             case AgentService.Phase.Idle when _agent.Request.Length == 0:
                 var key = Prefs.Current.TalkKey == "RightCtrl" ? "Right Ctrl" : "Right Alt";
+                // A few things to try, one click each.
+                var suggestions = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center };
+                foreach (var text in new[] { "Put on some music", "What’s on my screen?", "Open my Downloads" })
+                {
+                    var request = text;
+                    var chip = Ui.Button(text, () => _agent.Run(request));
+                    chip.Margin = new Thickness(3, 0, 3, 0);
+                    chip.FontSize = 12;
+                    suggestions.Children.Add(chip);
+                }
                 _body.Content = Ui.Empty("Tell Blob what to do on your PC.",
-                    Prefs.Current.VoiceKey ? $"Type below, or hold {key} and talk." : "Type below.");
+                    Prefs.Current.VoiceKey ? $"Type below, or hold {key} and talk." : "Type below.", suggestions);
                 return;
             case AgentService.Phase.Listening:
                 _body.Content = Ui.Empty("Listening…", "Let go when you’re done.");

@@ -6,6 +6,8 @@ struct AgentView: View {
     @State private var text = ""
     @FocusState private var focused: Bool
 
+    private static let suggestions = ["Put on some music", "What’s on my screen?", "Open my Downloads", "Switch to dark mode"]
+
     var body: some View {
         VStack(spacing: 10) {
             content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -17,11 +19,19 @@ struct AgentView: View {
     @ViewBuilder private var content: some View {
         switch agent.phase {
         case .idle where agent.request.isEmpty:
-            HStack(spacing: 12) {
-                BlobCharacter(mood: .curious, size: 22)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Tell Blob what to do on your Mac.").font(Theme.font(12, .semibold)).foregroundStyle(Theme.ink)
-                    Text("Type below, or hold right ⌥ and talk.").font(Theme.font(11)).foregroundStyle(Theme.secondary)
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    BlobCharacter(mood: .curious, size: 22)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Tell Blob what to do on your Mac.").font(Theme.font(12, .semibold)).foregroundStyle(Theme.ink)
+                        Text("Type below, or hold right ⌥ and talk.").font(Theme.font(11)).foregroundStyle(Theme.secondary)
+                    }
+                }
+                // A few things to try, one click each.
+                HStack(spacing: 6) {
+                    ForEach(Self.suggestions, id: \.self) { suggestion in
+                        PillButton(title: suggestion) { agent.run(suggestion) }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -14,6 +14,9 @@ enum Prefs {
     static let timerSound = "timerSound"
     static let stayOpen = "stayOpen"
     static let requireAuth = "requireAuth"
+    /// True from the first launch until the welcome is dismissed.
+    static let welcomePending = "welcomePending"
+    static let faceUnlock = "faceUnlock"
     static let phoneBridge = "phoneBridge"
     static let voiceKey = "voiceKey"
     static let appIcon = "appIcon"
@@ -35,6 +38,7 @@ enum Prefs {
             timerSound: true,
             stayOpen: false,
             requireAuth: false,
+            faceUnlock: false,
             phoneBridge: false,
             voiceKey: true,
             phoneTasks: true,

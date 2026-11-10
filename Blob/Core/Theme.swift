@@ -4,11 +4,11 @@ import SwiftUI
 enum Theme {
     static let surface = Color.black
     static let ink = Color.white
-    static let secondary = Color.white.opacity(0.56)
-    static let tertiary = Color.white.opacity(0.32)
-    static let hairline = Color.white.opacity(0.10)
-    static let fill = Color.white.opacity(0.07)
-    static let fillStrong = Color.white.opacity(0.14)
+    static let secondary = Color.white.opacity(0.64)
+    static let tertiary = Color.white.opacity(0.42)
+    static let hairline = Color.white.opacity(0.12)
+    static let fill = Color.white.opacity(0.08)
+    static let fillStrong = Color.white.opacity(0.16)
     static let blob = Color(white: 0.58)
     static let blobEye = Color.black
 

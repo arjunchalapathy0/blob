@@ -667,3 +667,28 @@
   background: rgba(22, 22, 24, 0.6);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
+
+/* ---------- The open notch's header, as redesigned in the app (OpenView) ---------- */
+
+.panel-title > span:nth-child(2) { color: rgba(255, 255, 255, 0.64); }
+.panel-controls { margin-left: auto; display: flex; gap: 10px; padding-right: 6px; color: rgba(255, 255, 255, 0.64); }
+.panel-tabs { gap: 1px; color: rgba(255, 255, 255, 0.64); }
+.tab { width: 24px; height: 22px; border-radius: 999px; }
+.tab.on { width: 24px; color: #000; background: #fff; }
+.panel-idle { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.panel-idle .panel-center { height: auto; }
+.panel-suggestions { display: flex; gap: 6px; }
+.suggestion {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-family: var(--f-ui);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 160ms, transform var(--spring-snap-dur) var(--spring-snap);
+}
+.suggestion:hover { background: rgba(255, 255, 255, 0.26); }
+.suggestion:active { transform: scale(0.94); }

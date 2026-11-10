@@ -3,10 +3,16 @@ import LocalAuthentication
 import SwiftUI
 
 /// Optional Touch ID lock for private tabs (Clipboard, Shelf, Ask). Falls back to the Mac
-/// password or Apple Watch. Locks again 30 s after the notch closes, and when the screen locks.
+/// password or Apple Watch, and can also unlock with your face through the camera (FaceUnlock).
+/// Locks again 30 s after the notch closes, and when the screen locks.
 @MainActor
 final class LockService: ObservableObject {
     @Published private(set) var isUnlocked = false
+    /// What face unlock is doing right now, for the locked screen and Settings.
+    @Published private(set) var faceStatus: String?
+    @Published private(set) var isScanningFace = false
+    @Published private(set) var faceEnrolled = FaceUnlock.isEnrolled
+    private var faceTask: Task<Void, Never>?
     private var relockTask: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
 
@@ -53,7 +59,63 @@ final class LockService: ObservableObject {
 
     func lock() {
         relockTask?.cancel()
+        faceTask?.cancel()
         isUnlocked = false
+    }
+
+    // MARK: - Face
+
+    var faceEnabled: Bool { Prefs.bool(Prefs.faceUnlock) && faceEnrolled }
+
+    private var cameraID: String? { UserDefaults.standard.string(forKey: Prefs.selectedCamera) }
+
+    /// Look at the camera and blink. Used automatically when a locked tab appears.
+    func unlockWithFace() {
+        guard faceEnabled, !isUnlocked, !isScanningFace else { return }
+        isScanningFace = true
+        faceStatus = "Look at the camera and blink"
+        let camera = cameraID
+        faceTask = Task {
+            do {
+                try await FaceUnlock.verify(cameraID: camera)
+                guard !Task.isCancelled else { return }
+                isUnlocked = true
+                faceStatus = nil
+            } catch {
+                if !Task.isCancelled { faceStatus = error.localizedDescription }
+            }
+            isScanningFace = false
+        }
+    }
+
+    /// Settings: look at the camera for a few seconds to save your face.
+    func setUpFace() {
+        guard !isScanningFace else { return }
+        isScanningFace = true
+        faceStatus = "Look at the camera…"
+        let camera = cameraID
+        faceTask = Task {
+            do {
+                try await FaceUnlock.enroll(cameraID: camera) { count in
+                    Task { @MainActor in self.faceStatus = "Hold still… \(count) of 8" }
+                }
+                faceEnrolled = true
+                UserDefaults.standard.set(true, forKey: Prefs.faceUnlock)
+                faceStatus = "Your face is set up. Unlock by looking and blinking."
+            } catch {
+                faceStatus = error.localizedDescription
+            }
+            isScanningFace = false
+        }
+    }
+
+    func forgetFace() {
+        faceTask?.cancel()
+        FaceUnlock.forget()
+        faceEnrolled = false
+        isScanningFace = false
+        UserDefaults.standard.set(false, forKey: Prefs.faceUnlock)
+        faceStatus = nil
     }
 
     func notchOpened() { relockTask?.cancel() }
@@ -78,8 +140,19 @@ struct LockGate<Content: View>: View {
     var body: some View {
         if lock.needsUnlock(module) {
             EmptyState(text: "\(module.title) is locked",
-                       detail: "Unlock with \(lock.biometryName).",
-                       mood: .sleepy, actionTitle: "Unlock") { lock.unlock() }
+                       detail: lock.faceEnabled
+                           ? (lock.faceStatus ?? "Look at the camera and blink, or use \(lock.biometryName).")
+                           : "Unlock with \(lock.biometryName).",
+                       mood: lock.isScanningFace ? .curious : .sleepy,
+                       actionTitle: lock.faceEnabled && !lock.isScanningFace ? "Try my face again" : "Unlock") {
+                if lock.faceEnabled && !lock.isScanningFace { lock.unlockWithFace() } else { lock.unlock() }
+            }
+            .task { lock.unlockWithFace() }
+            .overlay(alignment: .bottomTrailing) {
+                if lock.faceEnabled {
+                    PillButton(title: lock.biometryName == "Touch ID" ? "Touch ID" : "Password", prominent: false) { lock.unlock() }
+                }
+            }
         } else {
             content
         }

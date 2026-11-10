@@ -331,6 +331,9 @@ export function WingSide({ wing, side, mood }: { wing: Wing; side: "left" | "rig
   }
 }
 
+/** AgentView.suggestions: a few things to try, one click each. */
+const SUGGESTIONS = ["Put on some music", "What’s on my screen?", "Open my Downloads", "Switch to dark mode"];
+
 const TABS = ["music", "waveform", "tray", "clipboard", "calendar", "timer", "sparkle", "grid", "gauge", "camera"];
 
 function Panel({ s, mood, input }: { s: NotchState; mood: Mood; input: React.RefObject<HTMLInputElement | null> }) {
@@ -349,12 +352,16 @@ function Panel({ s, mood, input }: { s: NotchState; mood: Mood; input: React.Ref
         <span className="panel-title">
           <BlobFigure mood={mood} size={15} look="notch" active={s.open} />
           <span>Ask</span>
+          <span className="panel-controls" aria-hidden="true">
+            <Glyph name="pin" size={10} />
+            <Glyph name="gear" size={10} />
+          </span>
         </span>
         <span className="panel-gap" />
         <span className="panel-tabs" aria-hidden="true">
           {TABS.map((t) => (
             <span key={t} className={t === "waveform" ? "tab on" : "tab"}>
-              <Glyph name={t} size={11} />
+              <Glyph name={t} size={11.5} />
             </span>
           ))}
         </span>
@@ -394,13 +401,22 @@ function Panel({ s, mood, input }: { s: NotchState; mood: Mood; input: React.Ref
               )}
             </div>
           ) : (
-            <div className="panel-center">
-              <BlobFigure mood="curious" size={22} look="notch" active={s.open} />
-              <span>
-                <strong>Tell Blob what to do on your Mac.</strong>
-                <br />
-                <span className="ink-2">Type below, or hold right ⌥ and talk.</span>
-              </span>
+            <div className="panel-idle">
+              <div className="panel-center">
+                <BlobFigure mood="curious" size={22} look="notch" active={s.open} />
+                <span>
+                  <strong>Tell Blob what to do on your Mac.</strong>
+                  <br />
+                  <span className="ink-2">Type below, or hold right ⌥ and talk.</span>
+                </span>
+              </div>
+              <div className="panel-suggestions">
+                {SUGGESTIONS.map((text) => (
+                  <button key={text} type="button" className="suggestion" onClick={() => submitFromNotch(text)}>
+                    {text}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
