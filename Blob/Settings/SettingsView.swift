@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.timerSound) private var timerSound = true
     @AppStorage(Prefs.stayOpen) private var stayOpen = false
     @AppStorage(Prefs.requireAuth) private var requireAuth = false
+    @AppStorage(Prefs.faceUnlock) private var faceUnlock = false
     @AppStorage(Prefs.phoneBridge) private var phoneBridgeOn = false
     @AppStorage(Prefs.voiceKey) private var voiceKey = true
     @AppStorage(Prefs.phoneTasks) private var phoneTasks = true
@@ -161,10 +162,25 @@ struct SettingsView: View {
             Section {
                 Toggle("Require \(lock.biometryName) for Clipboard, Shelf and Ask", isOn: $requireAuth)
                     .onChange(of: requireAuth) { _, _ in lock.lock() }
+                if requireAuth {
+                    Toggle("Also unlock with my face (camera)", isOn: $faceUnlock)
+                        .disabled(!lock.faceEnrolled)
+                    LabeledContent("Face") {
+                        HStack {
+                            Text(lock.faceStatus ?? (lock.faceEnrolled ? "Set up" : "Not set up"))
+                                .foregroundStyle(.secondary).lineLimit(2)
+                            if lock.faceEnrolled {
+                                Button("Forget") { lock.forgetFace() }
+                            }
+                            Button(lock.faceEnrolled ? "Redo" : "Set up…") { lock.setUpFace() }
+                                .disabled(lock.isScanningFace)
+                        }
+                    }
+                }
             } header: {
                 Text("Privacy")
             } footer: {
-                Text("Locks again 30 seconds after the notch closes, and whenever your Mac locks.")
+                Text("Locks again 30 seconds after the notch closes, and whenever your Mac locks. Face unlock uses the camera to check it’s you and that you blink. It’s a convenience, not Face ID: a video of you could fool it, so \(lock.biometryName) always works too. Your face is saved only as a fingerprint on this Mac.")
             }
 
             Section("Now Playing") {
