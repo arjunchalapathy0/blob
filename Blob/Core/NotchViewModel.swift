@@ -149,7 +149,17 @@ final class NotchViewModel: ObservableObject {
     var holdsOpen: Bool { tab == .ask && (services.ask.holdsOpen || services.agent.isBusy) }
 
     /// The panel takes the keyboard only while the Ask tab is open.
-    var wantsKeyboard: Bool { phase == .open && tab == .ask && !services.lock.needsUnlock(.ask) }
+    var wantsKeyboard: Bool { phase == .open && tab == .ask && !isWelcoming && !services.lock.needsUnlock(.ask) }
+
+    /// First run: the open notch shows a short welcome, and stays open until it is dismissed.
+    var isWelcoming: Bool { Prefs.bool(Prefs.welcomePending) }
+
+    func finishWelcome() {
+        UserDefaults.standard.set(false, forKey: Prefs.welcomePending)
+        objectWillChange.send()
+        lastInteraction = Date()
+        mouseMoved(to: NSEvent.mouseLocation)
+    }
 
     /// When pinned, the open notch stays open after the cursor leaves or you click elsewhere.
     var isPinned: Bool { Prefs.bool(Prefs.stayOpen) }
@@ -179,7 +189,7 @@ final class NotchViewModel: ObservableObject {
         case .peek:
             if !inside { cancelHover(); setPhase(.closed) }
         case .open:
-            if inside || isDropTargeted || isPinned || holdsOpen { cancelClose() } else { scheduleClose() }
+            if inside || isDropTargeted || isPinned || holdsOpen || isWelcoming { cancelClose() } else { scheduleClose() }
         }
         if inside { lastInteraction = Date() }
     }
@@ -203,7 +213,7 @@ final class NotchViewModel: ObservableObject {
         guard closeTask == nil else { return }
         closeTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(320))
-            guard let self, !Task.isCancelled, !self.isDropTargeted, !self.isPinned, !self.holdsOpen else { return }
+            guard let self, !Task.isCancelled, !self.isDropTargeted, !self.isPinned, !self.holdsOpen, !self.isWelcoming else { return }
             self.closeTask = nil
             self.close()
         }

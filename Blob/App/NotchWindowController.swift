@@ -60,7 +60,7 @@ final class NotchWindowController {
             if event.keyCode == 53 { vm.close() } // esc
         case .leftMouseDown:
             dragChangeCount = NSPasteboard(name: .drag).changeCount
-            if vm.phase == .open, !local, !vm.isPinned, !vm.hitRect().contains(point) { vm.close() }
+            if vm.phase == .open, !local, !vm.isPinned, !vm.isWelcoming, !vm.hitRect().contains(point) { vm.close() }
         case .leftMouseDragged:
             let pb = NSPasteboard(name: .drag)
             if pb.changeCount != dragChangeCount, ModuleID.shelf.isEnabled,

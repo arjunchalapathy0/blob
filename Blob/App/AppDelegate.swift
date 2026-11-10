@@ -11,9 +11,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         services.start()
+        let firstLaunch = UserDefaults.standard.string(forKey: "lastLaunchedVersion") == nil
+        if firstLaunch { UserDefaults.standard.set(true, forKey: Prefs.welcomePending) }
         rebuild()
         announceUpdateIfNeeded()
         AppIconChoice.applyAtLaunch()
+        welcomeIfPending()
 
         NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
             .debounce(for: .milliseconds(400), scheduler: DispatchQueue.main)
@@ -43,6 +46,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             try? await Task.sleep(for: .seconds(1))
             services.notices.message("sparkles", "Updated to \(current)", duration: 4)
+        }
+    }
+
+    /// A new copy opens the notch by itself and says hello, so there's something to see.
+    private func welcomeIfPending() {
+        guard Prefs.bool(Prefs.welcomePending) else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            controllers.first?.vm.open()
         }
     }
 

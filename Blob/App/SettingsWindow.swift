@@ -9,9 +9,8 @@ enum SettingsWindow {
         if window == nil {
             let controller = NSHostingController(rootView: SettingsView().withServices(.shared))
             let w = NSWindow(contentViewController: controller)
-            w.title = "Blob"
-            w.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
-            w.titlebarAppearsTransparent = true
+            w.title = "Blob Settings"
+            w.styleMask = [.titled, .closable, .miniaturizable]
             w.isReleasedWhenClosed = false
             w.center()
             window = w

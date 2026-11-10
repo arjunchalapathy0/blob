@@ -35,22 +35,100 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
     @State private var apiKey = ""
+    @State private var pane: Pane = .general
+
+    private enum Pane: String, CaseIterable, Identifiable {
+        case general, modules, ask, claude, privacy, updates
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .general: "General"
+            case .modules: "Modules"
+            case .ask: "Ask & voice"
+            case .claude: "Claude Code"
+            case .privacy: "Privacy"
+            case .updates: "Updates"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .general: "gearshape"
+            case .modules: "square.grid.2x2"
+            case .ask: "waveform"
+            case .claude: "sparkle"
+            case .privacy: "lock"
+            case .updates: "arrow.down.circle"
+            }
+        }
+    }
 
     var body: some View {
-        Form {
-            Section {
-                HStack(spacing: 14) {
-                    BlobCharacter(mood: .happy, size: 30)
-                        .padding(8)
-                        .background(Color.black, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Blob").font(.system(size: 17, weight: .semibold, design: .rounded))
-                        Text("A soft little notch.").foregroundStyle(.secondary)
-                    }
+        HStack(spacing: 0) {
+            sidebar
+            Divider()
+            Group {
+                switch pane {
+                case .general: generalPane
+                case .modules: modulesPane
+                case .ask: askPane
+                case .claude: claudePane
+                case .privacy: privacyPane
+                case .updates: updatesPane
                 }
-                .padding(.vertical, 4)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(width: 720, height: 540)
+        .onAppear {
+            claude.refreshInstallState()
+            ask.refreshPermissions()
+        }
+    }
+
+    /// The sections of Settings, listed down the left like System Settings.
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 10) {
+                BlobCharacter(mood: .happy, size: 22)
+                    .padding(6)
+                    .background(Color.black, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Blob").font(.system(size: 15, weight: .semibold, design: .rounded))
+                    Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 14)
+
+            ForEach(Pane.allCases) { item in
+                Button { pane = item } label: {
+                    Label(item.title, systemImage: item.symbol)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(pane == item ? Color.primary.opacity(0.1) : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(pane == item ? .isSelected : [])
             }
 
+            Spacer()
+            Button("Quit Blob") { NSApp.terminate(nil) }
+                .padding(.horizontal, 8)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 16)
+        .frame(width: 190)
+    }
+
+    private var generalPane: some View {
+        Form {
             Section("App icon") {
                 HStack(spacing: 18) {
                     ForEach(AppIconChoice.allCases) { choice in
@@ -94,6 +172,16 @@ struct SettingsView: View {
                 if let loginError { Text(loginError).font(.caption).foregroundStyle(.secondary) }
             }
 
+            Section("Notices") {
+                Toggle("Show when charger connects", isOn: $chargingNotice)
+                Toggle("Timer sound", isOn: $timerSound)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var modulesPane: some View {
+        Form {
             Section("Modules") {
                 ForEach(ModuleID.allCases) { ModuleToggle(module: $0) }
             }
@@ -109,6 +197,38 @@ struct SettingsView: View {
                 Text("System HUD")
             } footer: {
                 Text(hud.isActive ? "Blob is handling media keys." : "The macOS HUD is in use.")
+            }
+
+            Section("Now Playing") {
+                Toggle("Monochrome artwork", isOn: $monoArt)
+                LabeledContent("Source", value: nowPlaying.backendName)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var askPane: some View {
+        Form {
+            Section {
+                Toggle("Hold right ⌥ to talk to Blob", isOn: $voiceKey)
+                PermissionRow(title: "Microphone", granted: agent.micAllowed,
+                              detail: "Only records while you hold the key.") { agent.requestMic() }
+                LabeledContent("Speech (Whisper, on this Mac)") {
+                    HStack {
+                        Text(agent.whisperStatus).foregroundStyle(.secondary).lineLimit(1)
+                        if agent.whisperStatus != "Ready" {
+                            Button("Get ready") { Task { await agent.warmUp() } }
+                        }
+                    }
+                }
+                LabeledContent("Does things with") {
+                    Text(ask.usesSubscription ? "Claude Code (your subscription)" : "Claude Code isn’t installed")
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Voice & agent")
+            } footer: {
+                Text("Blob can run commands, control apps and look at your screen to do what you ask. It stops and asks before deleting, sending or buying anything, and never uses sudo. Accessibility access is needed for the key.")
             }
 
             Section {
@@ -136,58 +256,12 @@ struct SettingsView: View {
             } footer: {
                 Text("Ask sends a screenshot of your screen (without Blob) and your question to Claude. With Claude Code installed and signed in, it uses your Claude subscription. Questions count toward your plan's usage. Otherwise it uses an API key.")
             }
+        }
+        .formStyle(.grouped)
+    }
 
-            Section {
-                Toggle("Hold right ⌥ to talk to Blob", isOn: $voiceKey)
-                PermissionRow(title: "Microphone", granted: agent.micAllowed,
-                              detail: "Only records while you hold the key.") { agent.requestMic() }
-                LabeledContent("Speech (Whisper, on this Mac)") {
-                    HStack {
-                        Text(agent.whisperStatus).foregroundStyle(.secondary).lineLimit(1)
-                        if agent.whisperStatus != "Ready" {
-                            Button("Get ready") { Task { await agent.warmUp() } }
-                        }
-                    }
-                }
-                LabeledContent("Does things with") {
-                    Text(ask.usesSubscription ? "Claude Code (your subscription)" : "Claude Code isn’t installed")
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Voice & agent")
-            } footer: {
-                Text("Blob can run commands, control apps and look at your screen to do what you ask. It stops and asks before deleting, sending or buying anything, and never uses sudo. Accessibility access is needed for the key.")
-            }
-
-            Section {
-                Toggle("Require \(lock.biometryName) for Clipboard, Shelf and Ask", isOn: $requireAuth)
-                    .onChange(of: requireAuth) { _, _ in lock.lock() }
-                if requireAuth {
-                    Toggle("Also unlock with my face (camera)", isOn: $faceUnlock)
-                        .disabled(!lock.faceEnrolled)
-                    LabeledContent("Face") {
-                        HStack {
-                            Text(lock.faceStatus ?? (lock.faceEnrolled ? "Set up" : "Not set up"))
-                                .foregroundStyle(.secondary).lineLimit(2)
-                            if lock.faceEnrolled {
-                                Button("Forget") { lock.forgetFace() }
-                            }
-                            Button(lock.faceEnrolled ? "Redo" : "Set up…") { lock.setUpFace() }
-                                .disabled(lock.isScanningFace)
-                        }
-                    }
-                }
-            } header: {
-                Text("Privacy")
-            } footer: {
-                Text("Locks again 30 seconds after the notch closes, and whenever your Mac locks. Face unlock uses the camera to check it’s you and that you blink. It’s a convenience, not Face ID: a video of you could fool it, so \(lock.biometryName) always works too. Your face is saved only as a fingerprint on this Mac.")
-            }
-
-            Section("Now Playing") {
-                Toggle("Monochrome artwork", isOn: $monoArt)
-                LabeledContent("Source", value: nowPlaying.backendName)
-            }
-
+    private var claudePane: some View {
+        Form {
             Section {
                 LabeledContent("Hooks") {
                     if claude.hooksInstalled {
@@ -220,12 +294,61 @@ struct SettingsView: View {
             } footer: {
                 Text("Adds a hook to ~/.claude/settings.json that runs Blob with --claude-hook. A backup is saved next to it.")
             }
+        }
+        .formStyle(.grouped)
+    }
 
-            Section("Notices") {
-                Toggle("Show when charger connects", isOn: $chargingNotice)
-                Toggle("Timer sound", isOn: $timerSound)
+    private var privacyPane: some View {
+        Form {
+            Section {
+                Toggle("Require \(lock.biometryName) for Clipboard, Shelf and Ask", isOn: $requireAuth)
+                    .onChange(of: requireAuth) { _, _ in lock.lock() }
+                if requireAuth {
+                    Toggle("Also unlock with my face (camera)", isOn: $faceUnlock)
+                        .disabled(!lock.faceEnrolled)
+                    LabeledContent("Face") {
+                        HStack {
+                            Text(lock.faceStatus ?? (lock.faceEnrolled ? "Set up" : "Not set up"))
+                                .foregroundStyle(.secondary).lineLimit(2)
+                            if lock.faceEnrolled {
+                                Button("Forget") { lock.forgetFace() }
+                            }
+                            Button(lock.faceEnrolled ? "Redo" : "Set up…") { lock.setUpFace() }
+                                .disabled(lock.isScanningFace)
+                        }
+                    }
+                }
+            } header: {
+                Text("Privacy")
+            } footer: {
+                Text("Locks again 30 seconds after the notch closes, and whenever your Mac locks. Face unlock uses the camera to check it’s you and that you blink. It’s a convenience, not Face ID: a video of you could fool it, so \(lock.biometryName) always works too. Your face is saved only as a fingerprint on this Mac.")
             }
 
+            Section {
+                PermissionRow(title: "Accessibility", granted: hud.isTrusted,
+                              detail: "For the ⌥ key, and the volume and brightness keys.") {
+                    hud.requestAccess()
+                    hud.openAccessibilitySettings()
+                }
+                PermissionRow(title: "Microphone", granted: agent.micAllowed,
+                              detail: "Only records while you hold the key.") { agent.requestMic() }
+                PermissionRow(title: "Screen Recording", granted: ask.canCapture,
+                              detail: "Only used when you ask about your screen.") { ask.requestScreenAccess() }
+                PermissionRow(title: "Calendar", granted: calendar.isAuthorized,
+                              detail: "Shows upcoming events.") { calendar.requestAccess() }
+                PermissionRow(title: "Camera", granted: camera.status == .authorized,
+                              detail: "Only used by the Mirror tab and face unlock.") { camera.requestAccess() }
+            } header: {
+                Text("Permissions")
+            } footer: {
+                Text("Everything Blob is allowed to use on this Mac, in one place.")
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var updatesPane: some View {
+        Form {
             Section {
                 LabeledContent("Status") {
                     HStack {
@@ -263,29 +386,8 @@ struct SettingsView: View {
                     Text("Update pulls the latest code into the source folder, rebuilds Blob with Xcode, and relaunches it. Your permissions carry over.")
                 }
             }
-
-            Section("Permissions") {
-                PermissionRow(title: "Calendar", granted: calendar.isAuthorized,
-                              detail: "Shows upcoming events.") { calendar.requestAccess() }
-                PermissionRow(title: "Camera", granted: camera.status == .authorized,
-                              detail: "Only used by the Mirror tab.") { camera.requestAccess() }
-            }
-
-            Section {
-                HStack {
-                    Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Quit Blob") { NSApp.terminate(nil) }
-                }
-            }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 640)
-        .onAppear {
-            claude.refreshInstallState()
-            ask.refreshPermissions()
-        }
     }
 
     private var updateStatus: String {
