@@ -60,3 +60,32 @@ They chose a mix of *cinematic* and *Blob is the star*, and named “too empty�
 - **Mood:** a 50 KB rendered loop (dust in a shaft of light from the notch) behind the headline and the closing chapter. It plays only on screen and stays still with reduced motion.
 - **Imagery:** an interlude of three art-directed renders of Blob (the notch, the ⌥ key, asleep). They are renders, not photos; real photography can replace them in `public/media/`.
 - Lighthouse after: mobile 95 / 100 / 100 / 100, desktop 100 ×4, CLS 0.
+
+## Round 6 — redesign ("Studio")
+
+A critical pass over v3 before rebuilding it:
+
+- **The product was invisible.** A black notch on near-black screens, in a black page. Fixed by
+  the one rule the redesign is built on: every screen has a pale wallpaper.
+- **The pitch was three screens down, and the downloads were at the very bottom.** The hero now
+  carries the headline, a one-sentence pitch, both downloads and the live demo.
+- **Too long and too dark.** 18,600 px of black became 11,000 px that alternates black rooms with
+  paper sheets. The scroll-zoom intro, the rendered "plates" and the separate iPhone section are
+  gone.
+- **The scenes were five near-empty screens.** Now one large screen with a list beside it; scroll
+  picks the scene, and clicking a title jumps to it.
+- **The feature list hid its best trick behind hover.** It is now a bento where each tile shows
+  what the notch looks like for that feature.
+- **The desktop didn't scale with the notch.** Windows were tiny next to a 1.7× notch. The whole
+  screen is now drawn in Mac points and scaled together.
+
+Found while testing the rebuild:
+
+- A layout jump on load (CLS 0.96 on a phone). React was sending the large hero after the page
+  shell because it sat in a Suspense boundary; the hero is now plain HTML at the top.
+- The decorative mood word failed contrast checks; it is now drawn with CSS, not written.
+- The screen glow caused sideways scrolling; fixed.
+- On a phone the caption collided with windows; it becomes a subtitle chip on small screens.
+
+Lighthouse (local production build): phone 98 / 100 / 100 / 100, desktop 100 ×4, CLS 0.
+Scrolling holds 16.7 ms frames in the same test that measured 50 ms before the v3 fix.

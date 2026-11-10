@@ -16,7 +16,7 @@ npm run build && npm start
 
 All in [`src/lib/site.ts`](src/lib/site.ts):
 
-- `sourceUrl` — the repository (private today, so only invited people can open it).
+- `sourceUrl` — the repository, linked from the footer.
 - `siteUrl` — the deployed URL, used for metadata and the share image.
 - `recordings` — real screen recordings (see below).
 
@@ -43,9 +43,13 @@ scene's copy. Record with QuickTime (File → New Screen Recording) at 2× and e
 
 ## How it works
 
-- **One notch** (`src/components/Notch.tsx`) is fixed to the top of the page. Sections take it over
-  through a small store (`src/lib/notch.ts`): the hero demo, each scroll scene, the feature index,
-  the moods.
+- **The notch** (`src/components/Notch.tsx`) is drawn inside each screen (`.screen`). The screens
+  share one state through a small store (`src/lib/notch.ts`): whichever section is in view takes
+  it over (the hero demo, then each scroll scene) and gives it back when it leaves.
+- **A screen** is drawn in Mac points and scaled as one piece (`src/lib/useScreenFit.ts`), so the
+  notch, menu bar and windows (`src/components/Desktop.tsx`) keep their real proportions.
+- **The travelling Blob** (`src/components/BlobActor.tsx`) moves between elements marked
+  `blob-anchor`; the nearest one to the middle of the window wins.
 - **The character** (`src/components/BlobFigure.tsx`, `src/lib/mood.ts`) is a line-for-line port
   of `Blob/Core/Character/Mood.swift` and `BlobCharacter.swift`.
 - **The notch shape** (`src/lib/notchPath.ts`) is `Blob/Core/NotchShape.swift`.
@@ -58,7 +62,7 @@ scene's copy. Record with QuickTime (File → New Screen Recording) at 2× and e
 
 ```bash
 npm run lint && npm run build && npm start &
-node scripts/shoot.mjs shots         # screenshots: every section, desktop + mobile, light + dark
+node scripts/shoot.mjs shots         # screenshots: every section, desktop + phone, plus the demo
 npx lighthouse@12.2.1 http://localhost:3000 --only-categories=performance,accessibility,best-practices,seo
 ```
 

@@ -5,7 +5,7 @@ export const site = {
   name: "Blob",
   /** Public URL of the deployed site (used for metadata and the share image). */
   siteUrl: "https://blobnotch.app",
-  /** The source repository. It is private today, so this link works only for invited people. */
+  /** The source repository, linked from the footer. */
   sourceUrl: "https://github.com/arjunchalapathy0/blob",
   // Downloads come from src/lib/releases.ts, which reads what the release workflows published.
   /**

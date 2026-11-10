@@ -1,31 +1,27 @@
 import { Suspense } from "react";
-import { MenuBar, PageLife } from "@/components/Chrome";
+import { Nav, PageLife } from "@/components/Chrome";
 import { BlobActor } from "@/components/BlobActor";
-import { Intro } from "@/components/Intro";
 import { Hero } from "@/components/Hero";
 import { Scenes } from "@/components/Scenes";
 import { Moods } from "@/components/Moods";
-import { Everything } from "@/components/Everything";
-import { Plates } from "@/components/Plates";
-import { Phone } from "@/components/Phone";
+import { Features } from "@/components/Features";
 import { Footer, GetIt, Privacy } from "@/components/Closing";
 
-// Each Suspense boundary hydrates in its own short task instead of the whole page at once.
+// The hero is plain HTML at the top of the document, so the first paint is the real first screen.
+// Sections below it sit in Suspense boundaries: each hydrates in its own short task, and React
+// may send a large one just after the shell (it is below the fold, so nothing visible moves).
 export default function Home() {
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>
-      <MenuBar />
+      <Nav />
       <PageLife />
       <main id="main">
-        <Suspense><Intro /></Suspense>
-        <Suspense><Hero /></Suspense>
+        <Hero />
         <Suspense><Scenes /></Suspense>
         <Suspense><Moods /></Suspense>
-        <Plates />
-        <Suspense><Everything /></Suspense>
+        <Suspense><Features /></Suspense>
         <Privacy />
-        <Suspense><Phone /></Suspense>
         <GetIt />
       </main>
       <Footer />
