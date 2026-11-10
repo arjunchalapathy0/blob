@@ -3,20 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Desktop, EMPTY_DESKTOP, type DesktopState } from "./Desktop";
 import { Cancelled, runScript, sleep } from "@/lib/agent";
-import { releaseNotch, setAgent, setNotch, takeNotch } from "@/lib/notch";
+import { releaseNotch, setAgent, setNotch, takeNotch, useNotch } from "@/lib/notch";
 import { SCENES } from "@/lib/requests";
 import { reducedMotion, subscribe } from "@/lib/ticker";
 import { site } from "@/lib/site";
 import { Eyebrow } from "./Chrome";
 import { Notch } from "./Notch";
-import { useNotchScale } from "@/lib/useNotchScale";
+import { useScreenFit } from "@/lib/useScreenFit";
 
 type Scene = {
   id: string;
   title: string;
   body: string;
   desk: Partial<DesktopState>;
-  /** How Blob, perched on the title, feels about it. */
+  /** How Blob, perched on the screen, feels about it. */
   mood: string;
 };
 
@@ -59,11 +59,11 @@ const LIST: Scene[] = [
 ];
 
 export function Scenes() {
+  const n = useNotch();
   const section = useRef<HTMLElement>(null);
-  const stageWrap = useRef<HTMLDivElement>(null);
-  const copies = useRef<(HTMLDivElement | null)[]>([]);
+  const bars = useRef<(HTMLSpanElement | null)[]>([]);
   const [index, setIndex] = useState(-1);
-  const notchScale = useNotchScale(0.86, 0.5);
+  const [inner, fit] = useScreenFit<HTMLDivElement>(1);
   const [desk, setDesk] = useState<DesktopState>({ ...EMPTY_DESKTOP, terminal: "hidden", trashBadge: false });
   const abort = useRef<AbortController | null>(null);
   const indexRef = useRef(-1);
@@ -113,11 +113,10 @@ export function Scenes() {
     [outcome],
   );
 
-  // Scroll → which scene, and a little parallax inside it. One passive listener; no scroll-jacking.
+  // Scroll picks the scene and fills its progress line. One passive listener; no scroll-jacking.
   useEffect(() => {
     const el = section.current;
     if (!el) return;
-    const reduce = reducedMotion();
     let inView = false;
     const io = new IntersectionObserver(([e]) => {
       inView = e.isIntersecting;
@@ -154,9 +153,9 @@ export function Scenes() {
         }
       }
       const local = p * LIST.length - Math.max(0, i);
-      if (stageWrap.current && !reduce) {
-        stageWrap.current.style.transform = `translateY(${(0.5 - local) * 18}px)`;
-      }
+      bars.current.forEach((b, k) => {
+        if (b) b.style.transform = `scaleX(${k === i ? local.toFixed(3) : 0})`;
+      });
     });
     return () => {
       unsub();
@@ -167,70 +166,69 @@ export function Scenes() {
     };
   }, [play]);
 
-  // Copy changes ride the soft spring: the outgoing line moves up and away, the next one settles in.
-  useEffect(() => {
-    copies.current.forEach((c, i) => {
-      if (!c) return;
-      c.dataset.state = i === Math.max(0, index) ? "on" : i < index ? "past" : "next";
-      c.toggleAttribute("data-blob-off", i !== index);
-    });
-  }, [index]);
+  /** Clicking a title scrolls to where that scene plays. */
+  const go = (i: number) => {
+    const el = section.current;
+    if (!el) return;
+    const total = el.offsetHeight - window.innerHeight;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: top + ((i + 0.15) / LIST.length) * total, behavior: reducedMotion() ? "auto" : "smooth" });
+  };
 
   const recording = (id: string) => site.recordings.find((r) => r.scene === id);
+  const shown = Math.max(0, index);
+  const a = n.agent;
+  const hearing = index >= 0 && (a.phase === "listening" || a.phase === "transcribing" || a.phase === "working") && a.request.length > 0;
 
   return (
-    <section id="scenes" ref={section} className="scenes" aria-labelledby="scenes-title" style={{ height: `${(LIST.length + 1) * 100}svh` }}>
+    <section id="scenes" ref={section} className="scenes" aria-labelledby="scenes-title" style={{ height: `${LIST.length * 80 + 100}svh` }}>
       <div className="scenes-pin">
         <div className="wrap scenes-grid">
           <div className="scenes-copy">
-            <Eyebrow n="02">A day with Blob</Eyebrow>
-            <h2 id="scenes-title" className="h2">A few things it did today.</h2>
-            <div className="scene-copies">
+            <Eyebrow n="01">A day with Blob</Eyebrow>
+            <h2 id="scenes-title" className="h2">A few things it <em>did today.</em></h2>
+            <ol className="scene-list">
               {LIST.map((s, i) => (
-                <div
-                  key={s.id}
-                  ref={(n) => {
-                    copies.current[i] = n;
-                  }}
-                  className="scene-copy blob-anchor"
-                  data-state={i === 0 ? "on" : "next"}
-                  data-blob="sit"
-                  data-blob-size="128"
-                  data-blob-x="0.14"
-                  data-blob-mood={s.mood}
-                  data-blob-priority="200"
-                  data-blob-off=""
-                  aria-hidden={i !== Math.max(0, index)}
-                >
-                  <span className="scene-n" aria-hidden="true">{i + 1}</span>
-                  <h3 className="h3">{s.title}</h3>
-                  <p className="body">{s.body}</p>
-                  {recording(s.id) && (
-                    <video className="recording" src={recording(s.id)!.src} poster={recording(s.id)!.poster} muted loop playsInline autoPlay preload="none" />
-                  )}
-                </div>
+                <li key={s.id} className="scene" data-on={i === shown || undefined}>
+                  <span ref={(node) => { bars.current[i] = node; }} className="scene-bar" aria-hidden="true" />
+                  <button type="button" className="scene-head h3" aria-expanded={i === shown} onClick={() => go(i)}>
+                    <span className="scene-n" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                    <span>{s.title}</span>
+                  </button>
+                  <div className="scene-body">
+                    <div>
+                      <p>{s.body}</p>
+                      {recording(s.id) && i === shown && (
+                        <video className="recording" src={recording(s.id)!.src} poster={recording(s.id)!.poster} muted loop playsInline autoPlay preload="none" />
+                      )}
+                    </div>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
-          <div className="scenes-stage" ref={stageWrap}>
-            <div className="mac small">
-              <div className="mac-screen">
-                <Notch scale={notchScale} label="The notch during this scene" />
-                <Desktop s={desk} label={index >= 0 ? `Scene ${index + 1}: ${LIST[index].title}` : "Scenes"} />
+          <div className="scenes-stage">
+            <div className="screen">
+              <div className="screen-glow" aria-hidden="true" />
+              <div
+                className="blob-anchor"
+                data-blob="sit"
+                data-blob-size="96"
+                data-blob-x="0.14"
+                data-blob-mood={LIST[shown].mood}
+                data-blob-priority="200"
+              />
+              <div ref={inner} className="screen-inner">
+                <Desktop s={desk} scale={fit.closed} compact={fit.points < 900} label={index >= 0 ? `Scene ${index + 1}: ${LIST[index].title}` : "Scenes"} />
+                <p className="heard" data-on={hearing || undefined} data-dim={a.phase === "working" || undefined} aria-hidden="true">
+                  <span>You say</span>“{a.request}”
+                </p>
+                <Notch scale={n.open ? fit.open : fit.closed} label="The notch during this scene" />
               </div>
             </div>
           </div>
         </div>
       </div>
-      {/* For screen readers and no-JS: every scene in order. */}
-      <ol className="sr-only">
-        {LIST.map((s) => (
-          <li key={s.id}>
-            <h3>{s.title}</h3>
-            <p>{s.body}</p>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }

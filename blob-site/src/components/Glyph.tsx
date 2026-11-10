@@ -24,6 +24,9 @@ const paths: Record<string, string> = {
   up: "M8 13V3.5 M3.8 7.7 8 3.5l4.2 4.2",
   plus: "M8 3.5v9 M3.5 8h9",
   play: "",
+  lock: "M4.2 7.4h7.6v6.2H4.2z M5.8 7.4V5.3a2.2 2.2 0 0 1 4.4 0v2.1",
+  phone: "M5 2h6v12H5z M7.2 12h1.6",
+  down: "M8 3v9.5 M3.8 8.3 8 12.5l4.2-4.2",
   trash: "M3 4.5h10 M6.2 4.5V3h3.6v1.5 M4.3 4.5l.7 9h6l.7-9",
 };
 

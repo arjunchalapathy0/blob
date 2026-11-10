@@ -1,28 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eyebrow } from "./Chrome";
 import { MOODS, type Mood } from "@/lib/mood";
+import { reducedMotion, subscribe } from "@/lib/ticker";
 
-/** Blob, centre stage and big, in whichever mood you pick. */
+/** Blob, centre stage and big on a sheet of paper, in whichever mood you pick. */
 export function Moods() {
   const [mood, setMood] = useState<Mood>("happy");
   const current = MOODS.find((m) => m.mood === mood)!;
+  const stage = useRef<HTMLDivElement>(null);
+  const word = useRef<HTMLSpanElement>(null);
+
+  // The mood's name drifts sideways behind Blob as the section scrolls past.
+  useEffect(() => {
+    const el = stage.current;
+    if (!el || reducedMotion()) return;
+    let visible = false;
+    let pending = true;
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      pending = true;
+    });
+    io.observe(el);
+    const mark = () => (pending = true);
+    window.addEventListener("scroll", mark, { passive: true });
+    const unsub = subscribe(() => {
+      if (!visible || !pending) return;
+      pending = false;
+      const r = el.getBoundingClientRect();
+      const p = (r.top + r.height / 2) / window.innerHeight - 0.5;
+      if (word.current) word.current.style.transform = `translateX(${(p * 9).toFixed(2)}%)`;
+    });
+    return () => {
+      unsub();
+      io.disconnect();
+      window.removeEventListener("scroll", mark);
+    };
+  }, []);
 
   return (
-    <section id="moods" className="section moods" aria-labelledby="moods-title">
+    <section id="moods" className="section paper moods" aria-labelledby="moods-title">
       <div className="wrap">
-        <div className="moods-head">
-          <div>
-            <Eyebrow n="03">Moods</Eyebrow>
-            <h2 id="moods-title" className="h2" data-reveal="">It never says <em>a word.</em></h2>
-          </div>
-          <p className="body" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
+        <header className="section-head center">
+          <Eyebrow n="02">Moods</Eyebrow>
+          <h2 id="moods-title" className="h2" data-reveal="">It never says <em>a word.</em></h2>
+          <p className="lead" data-reveal="" style={{ "--d": 1 } as React.CSSProperties}>
             Blob talks with its whole body: six moods, the app’s own springs, a blink every 4.6 seconds. Pick one.
           </p>
-        </div>
-        <div className="mood-stage">
-          <span className="mood-word" aria-hidden="true">{current.name}</span>
+        </header>
+        <div ref={stage} className="mood-stage">
+          <span ref={word} className="mood-word" data-word={current.name} aria-hidden="true" />
           <div className="blob-anchor mood-anchor" data-blob="center" data-blob-size="300" data-blob-mood={mood} data-blob-priority="400" />
         </div>
         <div className="mood-list" role="radiogroup" aria-label="Moods">

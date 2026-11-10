@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { site } from "@/lib/site";
 import "./globals.css";
+import "./stage.css";
 
 const sans = Geist({
   subsets: ["latin"],
@@ -27,9 +28,9 @@ const mono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.siteUrl),
-  title: "Blob — it lives in your notch, and does what you say",
+  title: "Blob — it lives in your notch and does what you say",
   description:
-    "Blob lives in your MacBook’s notch. Hold right Option, say what you want, and it does it on your Mac: opens apps, plays music, runs Shortcuts, reads your screen when you ask.",
+    "Blob lives in your MacBook’s notch. Hold right Option, say what you want, and it does it: opens apps, plays music, runs Shortcuts, reads your screen when you ask. Free for Mac and Windows.",
   openGraph: {
     title: "Blob",
     description: "Hold ⌥. Say it. Let go. A notch for your MacBook that does what you say.",

@@ -1,35 +1,28 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { BlobFigure } from "./BlobFigure";
 import { live } from "@/lib/notch";
 import { reducedMotion, subscribe } from "@/lib/ticker";
 
-/** A quiet bar: the name, the chapters, a way to get it, and how far through the story you are. */
-export function MenuBar() {
-  const progress = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    let last = -1;
-    return subscribe(() => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const p = max > 0 ? Math.round((window.scrollY / max) * 1000) / 1000 : 0;
-      if (p !== last && progress.current) {
-        progress.current.style.transform = `scaleX(${p})`;
-        last = p;
-      }
-    });
-  }, []);
+/**
+ * The site's own notch: the navigation hangs from the top of the window, the way Blob's
+ * notch hangs from the top of a Mac's screen. On the black rooms only its contents show.
+ */
+export function Nav() {
   return (
-    <header className="menubar">
-      <a href="#top" className="wordmark" aria-label="Blob, back to top">Blob</a>
-      <nav className="menu" aria-label="Chapters">
-        <a className="link" href="#demo">Try it</a>
-        <a className="link" href="#scenes">A day</a>
-        <a className="link" href="#moods">Moods</a>
-        <a className="link" href="#everything">Everything</a>
-        <a className="link" href="#privacy">Privacy</a>
+    <header className="nav">
+      <a href="#top" className="nav-brand" aria-label="Blob, back to top">
+        <BlobFigure mood="idle" size={15} look="pointer" />
+        <span>Blob</span>
+      </a>
+      <nav className="nav-links" aria-label="Sections">
+        <a href="#scenes">How it works</a>
+        <a href="#moods">Moods</a>
+        <a href="#features">Features</a>
+        <a href="#privacy">Privacy</a>
       </nav>
-      <a href="#get" className="menu-cta">Get Blob</a>
-      <span ref={progress} className="menubar-progress" aria-hidden="true" />
+      <a href="#get" className="nav-cta">Download</a>
     </header>
   );
 }
@@ -49,7 +42,7 @@ export function PageLife() {
           }
         }
       },
-      { rootMargin: "0px 0px -12% 0px" },
+      { rootMargin: "0px 0px -10% 0px" },
     );
     document.querySelectorAll("[data-reveal]").forEach((n) => io.observe(n));
 
@@ -72,7 +65,7 @@ export function PageLife() {
   return null;
 }
 
-/** A chapter label: number, then name. The story is told in chapters. */
+/** A chapter label: number, then name. */
 export function Eyebrow({ n, children }: { n: string; children: React.ReactNode }) {
   return (
     <p className="eyebrow" data-reveal="">

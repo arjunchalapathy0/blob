@@ -14,7 +14,7 @@ import {
 import type { Mood } from "@/lib/mood";
 
 /** LiveActivity.wingWidth */
-function wingWidth(w: Wing): number {
+export function wingWidth(w: Wing): number {
   switch (w.kind) {
     case "none": return 0;
     case "listening":
@@ -301,7 +301,7 @@ export function Notch({ scale = 1, label = "Blob's notch" }: { scale?: number; l
   );
 }
 
-function WingSide({ wing, side, mood }: { wing: Wing; side: "left" | "right"; mood: Mood }) {
+export function WingSide({ wing, side, mood }: { wing: Wing; side: "left" | "right"; mood: Mood }) {
   const L = side === "left";
   switch (wing.kind) {
     case "none":

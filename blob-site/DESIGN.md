@@ -1,137 +1,80 @@
 # Blob site — design
 
-## Direction (v2): a dark room, Blob as the lead
+## Direction: Studio
 
-The first version (Aluminium, below) was quiet to a fault: flat grey, a tiny notch, lots of empty
-space, nothing to stop the scroll. The owner asked for a mix of *cinematic, Apple-style* and
-*Blob is the star*. The rules now:
+A monochrome product studio. The page is a run of rooms: black rooms, and sheets of paper laid in
+them. Each room has one lit object, either a Mac's screen with the real notch on it, or Blob.
 
-- **Black page, real-looking screens.** The page is a dark room. The only lit things are Mac
-  screens (a bezel, a softly lit screen) and the type. Still monochrome: no accent colour.
-- **The opening shot** is a MacBook screen filling the window. Scrolling pushes the camera into the
-  notch, the notch springs open, and Blob drops out onto the headline.
-- **Blob is the lead.** One big Blob (`BlobActor`) lives on top of the page and travels between
-  perches (anchors) in every section, on a loose spring: it stretches as it moves, leans into the
-  direction of travel, squashes on landing, looks where it's going and then at you. Each perch says
-  how Blob feels (the scene's mood, or whatever the notch feels).
-- **The notch is big.** The demo, scenes and feature index each put the real notch, scaled up, at
-  the top of a Mac screen. They share one state, so the same request plays wherever you look.
-- **The demo is never idle.** Until you touch it, Blob runs through the requests by itself.
-- **Type is huge and tight** (Bricolage Grotesque, condensed `wdth` axis, −0.045em), with Newsreader
-  for reading.
-- Motion: every animation is still one of the app's springs (`Blob/Core/Springs.swift`), solved per
-  frame, and the character still runs `Mood.pose(at:)` line for line. Reduced motion holds still.
+Three rules hold everything together:
 
----
+1. **The notch is always on a lit screen.** The notch is black, so it disappears on a black page.
+   Every screen on the site has a pale grey wallpaper, which makes the black notch the darkest
+   thing in view. (Earlier versions put it on dark screens, and the product was hard to see.)
+2. **The first screen is the pitch.** Headline, one sentence, both downloads, and the notch
+   already at work underneath. Nothing has to be scrolled to before you know what Blob is.
+3. **Blob is the only thing that wanders.** One character travels the page on the app's springs,
+   perching on screens and headlines and taking each section's mood. Everything else stays put.
 
-# Blob site — design
+## Colour
 
-## Direction: Aluminium
+Monochrome. Two rooms, set by tokens (`:root` is the black room, `.paper` flips them):
 
-The page is the machine. Light mode is the anodized lid of a MacBook in daylight; dark mode is the
-screen at night. Against that, exactly one thing is pure black: the notch. Blob lives there, and the
-eye should always land there first.
+| | Black room | Paper |
+|---|---|---|
+| Background | `#000` | `#f5f5f7` |
+| Ink | `#f5f5f7` | `#0a0a0b` |
+| Secondary ink | `#a1a1a6` | `#48484d` |
+| Tertiary ink | `#86868b` | `#6e6e73` |
+| Hairline | `#232326` | `#d9d9de` |
 
-Rejected: *Night shift* (all-black page; collapses into the dark-plus-accent default and loses Blob's
-softness) and *Silent film* (intertitles and grain; charming, but a gimmick and grain costs
-performance). From Silent film we keep one idea: the use cases are **scenes** played on one stage,
-because they really are a sequence.
-
-## Palette
-
-No accent colour. Blob is monochrome in the app; the site is too.
-
-| Token | Light (lid) | Dark (screen) | Use |
-|---|---|---|---|
-| `--metal` | `#C9CACD` | `#17181A` | page surface |
-| `--metal-hi` | `#D8D9DB` | `#202124` | raised surface: the stage, keycaps |
-| `--metal-lo` | `#B7B8BC` | `#0F1011` | engraved lines, recesses |
-| `--graphite` | `#232427` | `#E6E6E8` | text |
-| `--graphite-2` | `#5B5C61` | `#9A9BA0` | secondary text (≥ 4.5:1 on `--metal`) |
-| `--notch` | `#000000` | `#000000` | the notch, and nothing else |
-| `--blob` | `#949498` | `#949498` | the character, as in the app (`Color(white: 0.58)`) |
-
-Inside the notch, the app's own ink: white at 100 / 56 / 32 % and fills at 7 / 14 %.
+Blob is one grey, `#949498`, everywhere. Screens use a soft grey wallpaper; windows on them are
+dark. There is no accent colour: emphasis comes from the italic serif and from white-on-black
+buttons.
 
 ## Type
 
-- **Display: Bricolage Grotesque** (variable, optical size 96, weight 700–800, width 75–85).
-  Condensed and slightly quirky at large sizes: it looks engraved into the lid rather than printed on
-  it. Tracking −0.04em at the top of the scale, −0.02em at h3.
-- **Text: Newsreader** (variable, optical size). A text serif for the copy, so the voice reads like a
-  person, not a feature list. 19/30 at desktop, 17/27 on mobile. Line length 34–38em max.
-- **Product UI: the system's rounded face** (`ui-rounded`, SF Pro Rounded), exactly what the app
-  uses. Only inside the notch and on keycaps.
+- **Geist**, weights 400–600, for everything.
+- **Instrument Serif italic** for the one accent phrase in a headline (*Let go.*, *a word.*),
+  and for what Blob hears.
+- **Geist Mono** for chapter labels and file sizes.
 
-Scale (1.333, rounded to the 8px rhythm): 14 · 17 · 19 · 24 · 32 · 44 · 64 · 88 · 128 (clamped by
-viewport). Never more than two sizes per block. No all-caps labels, no eyebrows, no mid-dot meta
-strings, no monospace labels, no arrows appended to links.
+Scale: display 116 / h2 88 / h3 28 / lead 22 / body 18 / small 15 / label 12. Headlines are set
+tight (−0.05em) and balanced.
 
-## Grid and rhythm
+## Layout
 
-- 12 columns, 1280px max, 24px gutters; 16px page margin on mobile.
-- Vertical rhythm on an 8px base. Section spacing: 168 (desktop) / 104 (mobile). Inside blocks:
-  8, 16, 24, 40, 64.
-- Content is left-aligned. The only centred object is the notch, because it is centred on a real
-  Mac.
-- Structure is drawn with **engraved hairlines** (a 1px `--metal-lo` line over a 1px highlight),
-  never with cards or shadows. The one raised surface is the stage, a screen inset into the lid.
+- A 1280 px column with fluid margins. Paper sheets are inset from the window edge and have
+  large rounded corners, so they read as objects in the room.
+- The navigation is the site's own notch: a black shape hanging from the top of the window. On
+  the black rooms only its contents show; on paper it is a notch.
+- Sections: hero and live demo → a day with Blob (pinned, five scenes) → moods (paper) →
+  features (a bento of small screens) → privacy (paper) → downloads → footer.
 
 ## Motion
 
-- Every animation is a spring taken from `Blob/Core/Springs.swift`:
-  `open` (response 0.42, damping 0.74), `close` (0.34, 0.9), `snap` (0.3, 0.82), `soft` (0.55, 0.85),
-  `wobble` (0.38, 0.58). Solved per frame, not CSS easing approximations.
-- The character runs the app's motion engine (`Mood.pose(at:)`), ported line for line, with moods
-  blended by the app's damped spring.
-- Motion only answers something: a request being carried out, a scroll into a scene, a hover. No
-  fade-up-on-scroll for text. Nothing loops on the page except Blob itself breathing.
-- `prefers-reduced-motion`: springs jump to their end state, the character holds still (blinks only),
-  scenes show their final frame.
-- Only `transform` and `opacity` animate outside the notch; the notch's size animates on one element
-  whose box never affects layout.
+Everything that moves uses the Mac app's springs (`src/lib/spring.ts`), either solved per frame or
+baked into `linear()` easings. Only `transform`, `opacity` and the notch's `clip-path` animate.
 
-## Details
+- The notch: the real state machine, wings, peek and panel, at the app's timings.
+- Blob: the app's moods, ported number for number (`src/lib/mood.ts`).
+- Scroll: headings and tiles arrive once; the scenes are pinned and scroll picks the scene; the
+  mood's name drifts behind Blob; Blob travels between perches.
+- With reduced motion, everything is simply in place and Blob only blinks.
 
-- Cursor: over the notch the cursor becomes a soft dot and Blob's eyes follow it (the app's
-  `lookGain`). Keycaps press down on click and when the real right ⌥ key is held.
-- Focus: a 2px graphite ring offset 3px, white inside the notch.
-- Copy: short, plain, specific, a little dry. Blob's own lines are the app's real strings.
+## The screens
 
-## Content rules
+A screen is a close-up of the top of a Mac's display, drawn in Mac points and scaled as one
+piece (`useScreenFit`), so the notch, menu bar and windows keep their real proportions at any
+size. On a phone the closed notch is drawn larger, and it zooms out when it opens.
 
-Every claim maps to code in this repo. Request flows use the app's real step labels
-(`ClaudeCLI.stepLabel`) and its real rules (asks before deleting, sending, buying).
+What Blob "hears" is shown as a caption under the notch. It is an annotation for the page, not
+part of the app, and it is labelled "You say".
 
----
+## Honesty
 
-## Addendum (owner, at build time): one notch for the whole page
-
-The owner asked for Blob to be alive across the entire site and for scroll-driven animation. This
-sharpens the direction rather than changing it:
-
-- **There is exactly one notch, and it never leaves.** It is fixed to the top centre of the viewport,
-  hanging from a thin menu-bar strip, like the real one hangs from the bezel. The hero demo, every
-  scene, the feature index and the moods all drive *that* notch. Scrolling the page is scrolling the
-  desktop underneath it.
-- **Blob reacts to the page.** It looks where you scroll (down while you scroll down, up when you go
-  back), looks at the pointer, takes the mood each section is about, and falls asleep at the
-  footer. Hovering a feature in the index makes the notch show that feature's real wings.
-- **Scroll animation is scene-driven, not decorative.** The scenes section pins one desktop and
-  plays each scene on the notch as you scroll into it; windows on the desktop move with scroll
-  progress. Text never fades up on its own.
-- The rest of the page uses windows (raised `--metal-hi` surfaces with an engraved edge, no
-  shadows) to show outcomes on the "desktop". The desktop picture is Blob itself, engraved into the
-  screen, sharing the notch's mood and peeking out from behind whatever window is open.
-
-## Changes made while building (and why)
-
-- **Optical size axis dropped from both fonts.** With `opsz` the two preloaded variable files were
-  ~130 KB each and mobile Lighthouse sat at 85–92. Bricolage Grotesque keeps its `wdth` axis (the
-  condensed cut is the point); Newsreader uses its default optical size. Display tracking was kept.
-- **No italic file.** Quotes are set upright in Newsreader with real quotation marks.
-- **CSS transitions use the app's springs too:** the few CSS transitions use `linear()` easings
-  sampled from the same solver (`scripts/spring-easings.mjs`), so they are the springs, not
-  approximations.
-- **Motion starts after load** (on idle, or the first pointer move, key or scroll), so it never
-  competes with first paint.
+- Download buttons exist only for builds that are actually published (`src/lib/releases.ts`).
+- The first-launch steps say plainly that the Mac build isn't notarized and that Windows may
+  block it.
+- Features that aren't on Windows yet are listed as Mac-only by omission in the Windows card.
+- The demos are scripted. A request the page doesn't know gets an honest answer: this is a web
+  page, so it can't touch your computer.

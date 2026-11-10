@@ -88,7 +88,7 @@ function Player({ playing }: { playing: boolean }) {
   );
 }
 
-export function Desktop({ s, label }: { s: DesktopState; label: string }) {
+export function Desktop({ s, label, scale = 1, compact = false }: { s: DesktopState; label: string; scale?: number; compact?: boolean }) {
   const scan = useRef<HTMLDivElement>(null);
   const trashLid = useRef<HTMLSpanElement>(null);
 
@@ -123,7 +123,22 @@ export function Desktop({ s, label }: { s: DesktopState; label: string }) {
   }, [s.trash]);
 
   return (
-    <div className="stage" role="img" aria-label={label}>
+    <div
+      className="stage"
+      role="img"
+      aria-label={label}
+      style={{ width: `${100 / scale}%`, height: `${100 / scale}%`, transform: `scale(${scale})` }}
+    >
+      <div className="menubar-mac" aria-hidden="true">
+        <span className="mm-left">
+          <b>Finder</b>
+          {!compact && (<><span>File</span><span>Edit</span></>)}
+        </span>
+        <span className="mm-right">
+          {!compact && <span>Thu 6 Nov</span>}
+          <span>9:41</span>
+        </span>
+      </div>
 
       <Win shown={s.terminal !== "hidden" ? 1 : 0} className="w-terminal" title="Terminal" preset={Springs.soft} y={18}>
         {s.terminal === "port" && (
