@@ -23,15 +23,15 @@ namespace Blob.UI;
 /// </summary>
 public sealed class NotchWindow : Window
 {
-    private const double WinW = 760, WinH = 360;
+    private const double NotchWinW = 760, NotchWinH = 360;
     private const double ClosedW = 190, ClosedH = 32, WingW = 340, PeekGrow = 18, PeekH = 38;
     private const double OpenW = 680, OpenH = 300;
     private const double Ears = 8;
 
     private readonly Services.Services _s;
     private readonly Path _shape = new() { Fill = Brushes.Black };
-    private readonly Panel _content = new() { Width = WinW, Height = WinH };
-    private readonly Panel _closed = new() { Width = WinW, Height = PeekH, VerticalAlignment = VerticalAlignment.Top, Background = Brushes.Transparent };
+    private readonly Panel _content = new();
+    private readonly Panel _closed = new() { Height = PeekH, VerticalAlignment = VerticalAlignment.Top, Background = Brushes.Transparent };
     private readonly Grid _open = new() { RowDefinitions = new RowDefinitions("38,*") };
     private readonly BlobView _miniBlob = new(17) { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
     private readonly BlobView _headBlob = new(18);
@@ -81,19 +81,42 @@ public sealed class NotchWindow : Window
 
     private bool Welcoming => !Prefs.Current.Welcomed;
 
+    /// <summary>
+    /// On a Chromebook, ChromeOS places Linux windows itself and won't keep one on top or see-through,
+    /// so Blob is a small ordinary window there: always open, moved and closed like any other app.
+    /// </summary>
+    private readonly bool _windowed = Platform.IsChromeOS;
+    private double WinW => _windowed ? OpenW : NotchWinW;
+    private double WinH => _windowed ? OpenH : NotchWinH;
+
     public NotchWindow(Services.Services services)
     {
         _s = services;
         Title = "Blob";
-        SystemDecorations = SystemDecorations.None;
-        TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
-        Background = Brushes.Transparent;
         CanResize = false;
-        ShowInTaskbar = false;
-        ShowActivated = false;
-        Topmost = true;
+        if (_windowed)
+        {
+            SystemDecorations = SystemDecorations.Full;
+            Background = Brushes.Black;
+            ShowInTaskbar = true;
+            ShowActivated = true;
+            using var icon = StartupService.Icon();
+            if (icon != null) Icon = new WindowIcon(icon);
+        }
+        else
+        {
+            SystemDecorations = SystemDecorations.None;
+            TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
+            Background = Brushes.Transparent;
+            ShowInTaskbar = false;
+            ShowActivated = false;
+            Topmost = true;
+        }
         Width = WinW;
         Height = WinH;
+        _content.Width = WinW;
+        _content.Height = WinH;
+        _closed.Width = WinW;
         FontFamily = Ui.Font;
 
         _ask = new AskPanel(_s.Agent);
@@ -117,7 +140,7 @@ public sealed class NotchWindow : Window
 
         _pin = Ui.IconButton("pin", "Keep open", () => Prefs.Update(p => p.StayOpen = !p.StayOpen), 28, 12);
 
-        var root = new Panel { Width = WinW, Height = WinH, Background = Brushes.Transparent };
+        var root = new Panel { Width = WinW, Height = WinH, Background = _windowed ? Brushes.Black : Brushes.Transparent };
         root.Children.Add(_shape);
         root.Children.Add(_content);
         _content.Children.Add(_closed);
@@ -141,18 +164,21 @@ public sealed class NotchWindow : Window
             MaybeClose();
             if (_stage != Stage.Open || _hovering) _lingerTimer.Stop();
         };
-        KeyDown += (_, e) => { if (e.Key == Key.Escape && !Welcoming) SetStage(Stage.Closed); };
+        KeyDown += (_, e) => { if (e.Key == Key.Escape && !Welcoming && !_windowed) SetStage(Stage.Closed); };
         Deactivated += (_, _) => { if (!_hovering) MaybeClose(); };
+        // As a window, closing it quits Blob (ChromeOS shows no tray icon to bring it back from).
+        if (_windowed) Closed += (_, _) => App.Quit();
 
         Opened += (_, _) =>
         {
             _xid = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
             _composited = X11.HasCompositor();
-            X11.MakeFloatingEverywhere(_xid);
+            if (!_windowed) X11.MakeFloatingEverywhere(_xid);
             Place();
             _geomW = -1; // force the first shape update
             RequestAnimationFrame(Frame);
-            if (Welcoming) DispatcherTimer.RunOnce(() => SetStage(Stage.Open), TimeSpan.FromMilliseconds(900));
+            if (_windowed) SetStage(Stage.Open);
+            else if (Welcoming) DispatcherTimer.RunOnce(() => SetStage(Stage.Open), TimeSpan.FromMilliseconds(900));
         };
         Screens.Changed += (_, _) => Place();
         Prefs.Changed += () =>
@@ -181,6 +207,7 @@ public sealed class NotchWindow : Window
     /// <summary>Top-centre of the main screen, just under a top panel if the desktop has one.</summary>
     private void Place()
     {
+        if (_windowed) return; // ChromeOS decides where windows go.
         var screen = Screens.Primary ?? Screens.All.FirstOrDefault();
         if (screen == null) return;
         var area = screen.WorkingArea;
@@ -204,7 +231,7 @@ public sealed class NotchWindow : Window
     {
         _open.Width = OpenW - 44;
         _open.Height = OpenH - 22;
-        _open.Margin = new Thickness((WinW - OpenW) / 2 + 22, 4, 0, 0);
+        _open.Margin = new Thickness((WinW - OpenW) / 2 + 22, _windowed ? 8 : 4, 0, 0);
         _open.HorizontalAlignment = HorizontalAlignment.Left;
         _open.VerticalAlignment = VerticalAlignment.Top;
 
@@ -222,6 +249,7 @@ public sealed class NotchWindow : Window
         }
         var settings = Ui.IconButton("settings", "Settings", App.ShowSettings, 28, 13);
         Icons.Tint((Control)_pin.Child!, Prefs.Current.StayOpen ? Ink.Primary : Ink.Secondary);
+        _pin.IsVisible = !_windowed; // a window stays open anyway
 
         var left = Ui.Row(8, _headBlob, _title);
         var right = Ui.Row(6, _tabs, new Border { Width = 1, Height = 14, Background = Ink.FillStrong }, _pin, settings);
@@ -333,7 +361,7 @@ public sealed class NotchWindow : Window
 
     private void MaybeClose()
     {
-        if (_hovering || _stage == Stage.Closed) return;
+        if (_windowed || _hovering || _stage == Stage.Closed) return;
         if (_stage == Stage.Open)
         {
             if (Prefs.Current.StayOpen || Welcoming) return;
@@ -349,6 +377,13 @@ public sealed class NotchWindow : Window
     {
         var panel = _panels.FirstOrDefault(p => p.Title == title);
         if (panel != null) Select(panel);
+        if (_windowed)
+        {
+            if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+            Activate();
+            FocusAsk();
+            return;
+        }
         SetStage(Stage.Open);
         // Opened without the pointer on it: it stays for a while, then closes by itself.
         _leaveTimer.Stop();
@@ -360,7 +395,7 @@ public sealed class NotchWindow : Window
     /// <summary>Closes the notch at once (Settings is about to open underneath it).</summary>
     public void CloseNow()
     {
-        if (!Welcoming) SetStage(Stage.Closed);
+        if (!Welcoming && !_windowed) SetStage(Stage.Closed);
     }
 
     private void SetStage(Stage stage)
@@ -404,8 +439,17 @@ public sealed class NotchWindow : Window
         if (Math.Abs(w - _geomW) > 0.05 || Math.Abs(h - _geomH) > 0.05 || Math.Abs(br - _geomBr) > 0.05)
         {
             var geometry = Shapes.Notch((WinW - w) / 2 - Ears, 0, w + 2 * Ears, h, Ears, br);
-            _shape.Data = geometry;
-            _content.Clip = geometry;
+            if (_windowed)
+            {
+                // The window itself is the black surface; nothing to shape.
+                _shape.IsVisible = false;
+                _content.Clip = null;
+            }
+            else
+            {
+                _shape.Data = geometry;
+                _content.Clip = geometry;
+            }
             _geomW = w; _geomH = h; _geomBr = br;
             UpdateInputShape(w, h, br);
         }
@@ -450,7 +494,7 @@ public sealed class NotchWindow : Window
     /// <summary>Tells the X server which part of the window is the notch. The rest lets clicks through.</summary>
     private void UpdateInputShape(double w, double h, double br)
     {
-        if (_xid == IntPtr.Zero) return;
+        if (_xid == IntPtr.Zero || _windowed) return;
         var scale = RenderScaling;
         var rect = new X11.XRectangle(((WinW - w) / 2 - Ears - 3) * scale, 0, (w + 2 * Ears + 6) * scale, (h + 3) * scale);
         if (rect.X == _inputRect.X && rect.Width == _inputRect.Width && rect.Height == _inputRect.Height) return;

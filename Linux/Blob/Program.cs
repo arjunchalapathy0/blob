@@ -96,6 +96,7 @@ internal static class SelfTest
             Console.WriteLine($"{(good ? "ok  " : "FAIL")} {name}: {detail}");
             ok &= good;
         }
+        Line("system", true, Blob.Core.Platform.IsChromeOS ? "ChromeOS (Linux container): Blob opens as a window" : "Linux desktop");
         Line("display", X11.Available, X11.Available ? (X11.IsWayland ? "X11 through XWayland" : "X11") : "no X display");
         Line("compositor", true, X11.HasCompositor() ? "yes" : "none (Blob will cut its window to shape)");
         try
@@ -107,7 +108,9 @@ internal static class SelfTest
         Line("recorder", true, VoiceRecorder.HasRecorder ? "found" : "none (install pulseaudio-utils or alsa-utils to talk)");
         Line("claude", true, ClaudeCli.Locate()?.File ?? "not installed");
         Line("media", true, Tools.Find("busctl") ?? "busctl not found (Now Playing will be empty)");
-        Line("talk key", true, VoiceKey.IsSupported ? "can watch Right Alt" : "can't watch keys here; bind a shortcut to `blob --toggle-talk`");
+        Line("talk key", true, VoiceKey.IsSupported ? "can watch Right Alt"
+            : Blob.Core.Platform.IsChromeOS ? "not on ChromeOS; hold the microphone button"
+            : "can't watch keys here; bind a shortcut to `blob --toggle-talk`");
         return ok ? 0 : 1;
     }
 }

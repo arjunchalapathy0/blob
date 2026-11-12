@@ -107,7 +107,7 @@ export function GetIt() {
 
           <article id="get-linux" className="platform" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
             <h3 className="h3">Linux</h3>
-            <p className="small">Ubuntu, Fedora, Debian, Arch and most others. x64 or ARM.</p>
+            <p className="small">Ubuntu, Fedora, Debian, Arch and most others, and Chromebooks with Linux turned on. x64 or ARM.</p>
             {linux ? (
               <>
                 <p className="body">Paste this into a terminal. It installs Blob for you only, no sudo, and starts it.</p>
@@ -122,6 +122,11 @@ export function GetIt() {
                       <li>Blob runs on X11, and on Wayland through XWayland.</li>
                       <li>On Wayland, apps can’t watch keys pressed in other apps, so bind a keyboard shortcut to <code>blob --toggle-talk</code>, or hold the microphone in the notch.</li>
                       <li>To talk, you need a recorder: <code>parecord</code> or <code>arecord</code>. Most desktops have one.</li>
+                      <li>
+                        On a Chromebook, turn on Linux first (Settings → About ChromeOS → Developers), then paste the command into
+                        the Terminal app. Blob opens as a small window there, you talk by holding its microphone, and it can only
+                        act inside Linux, not on Chrome or Android apps. School Chromebooks often have Linux turned off.
+                      </li>
                       <li>To remove it: <code>blob --uninstall</code>.</li>
                     </ol>
                   </details>

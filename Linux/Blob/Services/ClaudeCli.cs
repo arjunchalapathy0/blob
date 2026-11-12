@@ -60,6 +60,13 @@ public static class ClaudeCli
         "- When finished, reply in one or two short plain sentences saying what you did or found. The reply is " +
         "shown in a tiny notch: no Markdown headings, no lists unless asked.";
 
+    /// <summary>What's different on a Chromebook, added to the instructions there.</summary>
+    private const string ChromeOSNote =
+        "\n\nThis computer is a Chromebook, and you are inside ChromeOS's Linux container. `xdg-open` opens links and files " +
+        "in Chrome on the ChromeOS side. You can't control Chrome, ChromeOS settings, Android apps or ChromeOS's own files " +
+        "outside the shared Linux folders, and screenshots only show Linux windows. If a request needs any of those, say so " +
+        "plainly and suggest how the user can do it themselves.";
+
     public static Task Agent(Launcher cli, string request, string? resume, Action<AgentEvent> onEvent, CancellationToken ct)
     {
         var args = new List<string>
@@ -69,7 +76,7 @@ public static class ClaudeCli
             "--disallowedTools", "Bash(sudo:*),Bash(rm -rf:*),Bash(rm -fr:*),Bash(mkfs:*),Bash(dd:*)",
             "--permission-mode", "acceptEdits",
             "--max-turns", "40",
-            "--append-system-prompt", AgentPrompt,
+            "--append-system-prompt", Platform.IsChromeOS ? AgentPrompt + ChromeOSNote : AgentPrompt,
         };
         if (resume != null) { args.Add("--resume"); args.Add(resume); }
         return Run(cli, args, request, onEvent, ct);

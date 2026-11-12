@@ -185,7 +185,9 @@ public sealed class MusicPanel : IPanel
         {
             _root.Content = Ui.Empty("Nothing playing",
                 _music.Available
-                    ? "Play something in Spotify, a browser, VLC, or any app that shows in your desktop’s media controls."
+                    ? (Platform.IsChromeOS
+                        ? "Shows music playing in Linux apps. Music in Chrome tabs or Android apps can’t be seen from Linux."
+                        : "Play something in Spotify, a browser, VLC, or any app that shows in your desktop’s media controls.")
                     : "Now Playing reads the desktop’s media controls with busctl, which this system doesn’t have.");
             return;
         }
@@ -404,13 +406,15 @@ public sealed class WelcomePanel
         var claude = _agent.ClaudeInstalled;
         var recorder = VoiceRecorder.HasRecorder;
         var key = VoiceKey.IsSupported;
+        var chromeOS = Platform.IsChromeOS;
 
         Blob = new BlobView(34) { Mood = claude ? Mood.Happy : Mood.Curious, HorizontalAlignment = HorizontalAlignment.Left };
         var hello = Ui.Column(6,
             Blob,
             Ui.Text("Hi, I’m Blob.", 18, Ink.Primary, FontWeight.SemiBold),
-            Ui.Text(key ? "I live up here. Hover to open me, or hold Right Alt and tell me what to do."
-                        : "I live up here. Hover to open me, then type or hold the microphone.", 12.5, Ink.Secondary, wrap: true));
+            Ui.Text(chromeOS ? "Tell me what to do: type below, or hold the microphone and talk."
+                    : key ? "I live up here. Hover to open me, or hold Right Alt and tell me what to do."
+                    : "I live up here. Hover to open me, then type or hold the microphone.", 12.5, Ink.Secondary, wrap: true));
         hello.Width = 200;
         hello.VerticalAlignment = VerticalAlignment.Center;
 
@@ -418,9 +422,18 @@ public sealed class WelcomePanel
         rows.Children.Add(Row("code", "Claude Code", "Lets me do things, on your own Claude plan.", claude,
             "Get it", () => Tools.Open("https://claude.com/claude-code")));
         rows.Children.Add(Row("mic", "Microphone", recorder ? "Only records while you hold the key or button." : "Install pulseaudio-utils or alsa-utils.", recorder,
-            "How", () => Tools.Open("https://blobnotch.app/#get")));
-        rows.Children.Add(Row("ask", "Talk key", key ? "Hold Right Alt anywhere." : "On Wayland, bind a shortcut to: blob --toggle-talk", key,
-            "Settings", App.ShowSettings));
+            "How", () => Tools.Open("https://blobnotch.app/#get-linux")));
+        if (chromeOS)
+        {
+            // ChromeOS keeps the microphone from Linux apps until it's allowed, and Blob can't tell from inside.
+            rows.Children.Add(Info("ask", "On a Chromebook",
+                "Allow the mic: Settings → About ChromeOS → Developers → Linux → microphone."));
+        }
+        else
+        {
+            rows.Children.Add(Row("ask", "Talk key", key ? "Hold Right Alt anywhere." : "On Wayland, bind a shortcut to: blob --toggle-talk", key,
+                "Settings", App.ShowSettings));
+        }
         var footer = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(2, 4, 2, 0) };
         footer.Children.Add(Ui.Text("All of this is in Settings too.", 11.5, Ink.Tertiary));
         var go = Ui.Pill(claude ? "Let’s go" : "Later", _done, true);
@@ -434,6 +447,17 @@ public sealed class WelcomePanel
         Grid.SetColumn(rows, 1);
         grid.Children.Add(rows);
         _root.Content = grid;
+    }
+
+    /// <summary>A row that's advice, not a check.</summary>
+    private static Control Info(string icon, string title, string detail)
+    {
+        var names = Ui.Column(0, Ui.Text(title, 13, Ink.Primary, FontWeight.SemiBold), Ui.Text(detail, 11.5, Ink.Secondary, wrap: true));
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 10 };
+        row.Children.Add(Icons.Make(icon, 14, Ink.Secondary));
+        Grid.SetColumn(names, 1);
+        row.Children.Add(names);
+        return new Border { Background = Ink.Fill, CornerRadius = new CornerRadius(12), Padding = new Thickness(12, 6, 8, 6), Child = row };
     }
 
     private static Control Row(string icon, string title, string detail, bool ready, string action, Action run)

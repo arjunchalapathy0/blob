@@ -48,9 +48,17 @@ public sealed class SettingsWindow : Window
         var p = Prefs.Current;
 
         Section("General");
-        Toggle("Open Blob when I sign in", StartupService.IsEnabled, StartupService.Set);
-        Toggle("Show Blob in the apps menu", StartupService.InMenu, on => { if (on) StartupService.AddToMenu(); else StartupService.RemoveAll(); });
-        Toggle("Keep the notch open when the pointer leaves", p.StayOpen, v => Prefs.Update(x => x.StayOpen = v));
+        if (Platform.IsChromeOS)
+        {
+            // ChromeOS starts Linux only when it's needed, so Blob can't start at sign-in there.
+            Toggle("Show Blob in the launcher", StartupService.InMenu, on => { if (on) StartupService.AddToMenu(); else StartupService.RemoveAll(); });
+        }
+        else
+        {
+            Toggle("Open Blob when I sign in", StartupService.IsEnabled, StartupService.Set);
+            Toggle("Show Blob in the apps menu", StartupService.InMenu, on => { if (on) StartupService.AddToMenu(); else StartupService.RemoveAll(); });
+            Toggle("Keep the notch open when the pointer leaves", p.StayOpen, v => Prefs.Update(x => x.StayOpen = v));
+        }
         Toggle("Play a sound when a timer ends", p.TimerSound, v => Prefs.Update(x => x.TimerSound = v));
         Toggle("Keep a clipboard history (in memory only)", p.ClipboardHistory, v => Prefs.Update(x => x.ClipboardHistory = v));
 
@@ -63,18 +71,27 @@ public sealed class SettingsWindow : Window
             key.SelectionChanged += (_, _) => Prefs.Update(x => x.TalkKey = key.SelectedIndex == 1 ? "RightCtrl" : "RightAlt");
             _col.Children.Add(key);
         }
+        else if (Platform.IsChromeOS)
+        {
+            _col.Children.Add(Note("On a Chromebook, hold the microphone button next to the Ask box and talk. " +
+                                   "ChromeOS doesn’t let Linux apps see other apps’ keys or set keyboard shortcuts for them."));
+            _col.Children.Add(Note("ChromeOS also keeps the microphone from Linux apps until you allow it: " + Platform.ChromeOSMicSetting + "."));
+        }
         else
         {
             _col.Children.Add(Note("On Wayland, apps can’t see keys pressed in other apps, so Blob can’t watch Right Alt here. " +
                                    "Hold the microphone button in the notch, or add a keyboard shortcut in your desktop’s settings that runs:"));
         }
-        _col.Children.Add(Note(VoiceKey.IsSupported ? "A keyboard shortcut works too. Press once to start, again to stop:" : ""));
-        _col.Children.Add(new SelectableTextBlock
+        if (!Platform.IsChromeOS)
         {
-            Text = $"{Paths.Exe} --toggle-talk",
-            FontFamily = new FontFamily("monospace"), FontSize = 12.5, TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 0, 0, 6),
-        });
+            _col.Children.Add(Note(VoiceKey.IsSupported ? "A keyboard shortcut works too. Press once to start, again to stop:" : ""));
+            _col.Children.Add(new SelectableTextBlock
+            {
+                Text = $"{Paths.Exe} --toggle-talk",
+                FontFamily = new FontFamily("monospace"), FontSize = 12.5, TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 6),
+            });
+        }
         _col.Children.Add(Note(VoiceRecorder.HasRecorder
             ? "Microphone: ready. It only records while you hold the key or button."
             : "Microphone: no recorder found. Install pulseaudio-utils or alsa-utils."));
