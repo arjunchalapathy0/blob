@@ -50,10 +50,14 @@ public sealed class ClipboardService
         _busy = true;
         try
         {
+            // The older calls are used on purpose: the newer TryGetTextAsync doesn't read text from
+            // apps that only offer UTF8_STRING (checked against xclip), and these do.
+#pragma warning disable CS0618
             var text = await _clipboard.GetTextAsync();
             if (string.IsNullOrWhiteSpace(text) || text == _last) return;
             _last = text;
             var formats = await _clipboard.GetFormatsAsync();
+#pragma warning restore CS0618
             if (formats != null && formats.Any(f => f.Contains("passwordManagerHint", StringComparison.OrdinalIgnoreCase))) return;
             if (text.Length > 20_000) return;
             var existing = Items.FirstOrDefault(i => i.Text == text);
@@ -67,7 +71,7 @@ public sealed class ClipboardService
             }
             if (existing == null) Copied?.Invoke();
         }
-        catch { /* the owner went away mid-read; try again next time */ }
+        catch (Exception e) { if (Environment.GetEnvironmentVariable("BLOB_DEBUG") != null) Console.Error.WriteLine("clipboard: " + e); }
         finally { _busy = false; }
     }
 

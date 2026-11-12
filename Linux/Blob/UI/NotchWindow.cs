@@ -61,6 +61,8 @@ public sealed class NotchWindow : Window
     private readonly DispatcherTimer _hoverTimer = new();
     private Stage _hoverNext = Stage.Peek;
     private readonly DispatcherTimer _leaveTimer = new() { Interval = TimeSpan.FromMilliseconds(320) };
+    /// <summary>Closes a notch that was opened from outside (a command, the tray) and then left alone.</summary>
+    private readonly DispatcherTimer _lingerTimer = new() { Interval = TimeSpan.FromSeconds(8) };
     private readonly DateTime _start = DateTime.Now;
     private DateTime _lastFrame = DateTime.Now;
     private double _geomW = -1, _geomH = -1, _geomBr = -1;
@@ -72,6 +74,7 @@ public sealed class NotchWindow : Window
     private Wing _wingKind = Wing.None;
     private string _wingIconName = "";
     private string _agentSignature = "";
+    private DateTime _agentChangedAt = DateTime.Now;
 
     private int _pointerX, _pointerY, _frame;
     private DateTime _lastActivity = DateTime.Now;
@@ -132,6 +135,12 @@ public sealed class NotchWindow : Window
         _closed.PointerPressed += (_, _) => { SetStage(Stage.Open); FocusAsk(); };
         _hoverTimer.Tick += HoverStep;
         _leaveTimer.Tick += (_, _) => { _leaveTimer.Stop(); MaybeClose(); };
+        _lingerTimer.Tick += (_, _) =>
+        {
+            // Still busy, or you're typing: check again later.
+            MaybeClose();
+            if (_stage != Stage.Open || _hovering) _lingerTimer.Stop();
+        };
         KeyDown += (_, e) => { if (e.Key == Key.Escape && !Welcoming) SetStage(Stage.Closed); };
         Deactivated += (_, _) => { if (!_hovering) MaybeClose(); };
 
@@ -159,6 +168,7 @@ public sealed class NotchWindow : Window
             var signature = $"{a.State}|{a.Steps.Count}|{a.Reply.Length}|{a.Error}|{a.Request}|{a.WhisperStatus}";
             if (signature == _agentSignature) return;
             _agentSignature = signature;
+            _agentChangedAt = DateTime.Now;
             if (_stage == Stage.Open && _current == _ask && !Welcoming) _ask.Refresh();
         };
         _s.Music.Changed += () => RefreshIf<MusicPanel>();
@@ -327,8 +337,9 @@ public sealed class NotchWindow : Window
         if (_stage == Stage.Open)
         {
             if (Prefs.Current.StayOpen || Welcoming) return;
-            // Don't snatch the panel away mid-sentence or mid-request.
+            // Don't snatch the panel away mid-sentence or mid-request, or before the answer has been up a moment.
             if (_current == _ask && (_s.Agent.IsBusy || (IsActive && !string.IsNullOrEmpty(_ask.Input.Text)))) return;
+            if (_current == _ask && _s.Agent.State == AgentService.Phase.Done && (DateTime.Now - _agentChangedAt).TotalSeconds < 5 && _lingerTimer.IsEnabled) return;
         }
         SetStage(Stage.Closed);
     }
@@ -339,9 +350,17 @@ public sealed class NotchWindow : Window
         var panel = _panels.FirstOrDefault(p => p.Title == title);
         if (panel != null) Select(panel);
         SetStage(Stage.Open);
-        // Opened without the pointer on it: give it a moment before it's allowed to close.
+        // Opened without the pointer on it: it stays for a while, then closes by itself.
         _leaveTimer.Stop();
+        _lingerTimer.Stop();
+        _lingerTimer.Start();
         FocusAsk();
+    }
+
+    /// <summary>Closes the notch at once (Settings is about to open underneath it).</summary>
+    public void CloseNow()
+    {
+        if (!Welcoming) SetStage(Stage.Closed);
     }
 
     private void SetStage(Stage stage)
@@ -415,6 +434,11 @@ public sealed class NotchWindow : Window
         {
             var (hx, hy) = Look(_headBlob);
             _headBlob.Tick(t, hx, hy);
+            if (Welcoming && _welcome.Blob is { } hello)
+            {
+                var (wx, wy) = Look(hello);
+                hello.Tick(t, wx, wy);
+            }
         }
         if (_closed.Opacity > 0)
         {

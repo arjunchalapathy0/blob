@@ -14,11 +14,11 @@ public sealed class SettingsWindow : Window
 {
     private readonly Services.Services _s;
     private readonly StackPanel _col = new() { Margin = new Thickness(26, 22, 26, 26), Spacing = 6 };
-    private readonly TextBlock _whisper = Note("");
-    private readonly TextBlock _update = Note("");
+    private readonly TextBlock _whisper = Note(" ");
+    private readonly TextBlock _update = Note(" ");
     private readonly Button _updateButton = new();
     private readonly Button _whisperButton = new() { Content = "Download Whisper now" };
-    private readonly TextBlock _claude = Note("");
+    private readonly TextBlock _claude = Note(" ");
     private readonly Button _claudeButton = new();
 
     public SettingsWindow(Services.Services s)
@@ -27,7 +27,7 @@ public sealed class SettingsWindow : Window
         Title = "Blob Settings";
         Width = 540;
         SizeToContent = SizeToContent.Height;
-        MaxHeight = 820;
+        MaxHeight = 660;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         FontFamily = Ui.Font;

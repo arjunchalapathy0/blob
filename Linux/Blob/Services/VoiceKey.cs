@@ -16,7 +16,8 @@ public sealed class VoiceKey
 {
     private const int HoldDelayMs = 220;
 
-    private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(30) };
+    // Often enough that a quick tap of another key (a shortcut) is never missed.
+    private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(12) };
     private bool _down, _listening, _spoiled;
     private DateTime _downAt;
 

@@ -54,6 +54,18 @@ public sealed class AskPanel : IPanel
             VerticalContentAlignment = VerticalAlignment.Center,
             AcceptsReturn = false,
         };
+        // The theme's focus ring is accent blue; Blob is monochrome, so focus is a quiet white hairline.
+        _input.Resources["TextControlBackgroundPointerOver"] = Ink.FillStrong;
+        _input.Resources["TextControlBackgroundFocused"] = Ink.Fill;
+        _input.Resources["TextControlBorderBrushFocused"] = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
+        _input.Resources["TextControlBorderThemeThicknessFocused"] = new Thickness(1);
+        _input.Resources["TextControlForegroundFocused"] = Ink.Primary;
+        _input.Resources["TextControlForegroundPointerOver"] = Ink.Primary;
+        _input.Resources["TextControlPlaceholderForegroundFocused"] = Ink.Tertiary;
+        _input.Resources["TextControlPlaceholderForegroundPointerOver"] = Ink.Tertiary;
+        _input.Resources["TextControlPlaceholderForeground"] = Ink.Tertiary;
+        _input.CaretBrush = Ink.Primary;
+        _input.SelectionBrush = new SolidColorBrush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF));
         AutomationProperties.SetName(_input, "Tell Blob what to do");
         _input.KeyDown += (_, e) =>
         {
@@ -377,6 +389,8 @@ public sealed class WelcomePanel
     private readonly Action _done;
     private readonly ContentControl _root = new();
     public Control View => _root;
+    /// <summary>The Blob that says hello, so the window can keep it moving.</summary>
+    public BlobView? Blob { get; private set; }
 
     public WelcomePanel(AgentService agent, Action done)
     {
@@ -391,8 +405,9 @@ public sealed class WelcomePanel
         var recorder = VoiceRecorder.HasRecorder;
         var key = VoiceKey.IsSupported;
 
+        Blob = new BlobView(34) { Mood = claude ? Mood.Happy : Mood.Curious, HorizontalAlignment = HorizontalAlignment.Left };
         var hello = Ui.Column(6,
-            new BlobView(34) { Mood = Mood.Happy, HorizontalAlignment = HorizontalAlignment.Left, Tag = "welcome-blob" },
+            Blob,
             Ui.Text("Hi, I’m Blob.", 18, Ink.Primary, FontWeight.SemiBold),
             Ui.Text(key ? "I live up here. Hover to open me, or hold Right Alt and tell me what to do."
                         : "I live up here. Hover to open me, then type or hold the microphone.", 12.5, Ink.Secondary, wrap: true));
@@ -414,7 +429,7 @@ public sealed class WelcomePanel
         rows.Children.Add(footer);
         rows.VerticalAlignment = VerticalAlignment.Center;
 
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 22 };
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 22, VerticalAlignment = VerticalAlignment.Center };
         grid.Children.Add(hello);
         Grid.SetColumn(rows, 1);
         grid.Children.Add(rows);

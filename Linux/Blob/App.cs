@@ -109,6 +109,7 @@ public sealed class App : Application
     public static void ShowSettings()
     {
         if (_services == null) return;
+        _notch?.CloseNow();
         if (_settings == null)
         {
             _settings = new SettingsWindow(_services);
