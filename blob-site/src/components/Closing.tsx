@@ -1,7 +1,7 @@
 import { AmbientVideo } from "./AmbientVideo";
 import { Eyebrow } from "./Chrome";
 import { site } from "@/lib/site";
-import { megabytes, releases } from "@/lib/releases";
+import { linuxInstall, megabytes, releases } from "@/lib/releases";
 
 export function Privacy() {
   return (
@@ -27,10 +27,10 @@ export function Privacy() {
           <div data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
             <h3 className="h3">What it needs</h3>
             <ul>
-              <li><strong>A Mac or a PC.</strong> macOS 14 or later on Apple silicon or Intel, or Windows 10 or 11.</li>
+              <li><strong>A Mac or a PC.</strong> macOS 14 or later on Apple silicon or Intel, Windows 10 or 11, or Linux with an X11 or XWayland desktop.</li>
               <li><strong>Claude Code.</strong> Installed and signed in. Blob does things through it, on your own Claude subscription.</li>
               <li><strong>Accessibility access on the Mac.</strong> For the ⌥ key, and for clicking around in apps.</li>
-              <li><strong>A notch is the nicest home.</strong> On other screens, and on Windows, Blob draws its own.</li>
+              <li><strong>A notch is the nicest home.</strong> On other screens, and on Windows and Linux, Blob draws its own.</li>
             </ul>
           </div>
         </div>
@@ -40,7 +40,7 @@ export function Privacy() {
 }
 
 export function GetIt() {
-  const { mac, windows } = releases;
+  const { mac, windows, linux } = releases;
   return (
     <section id="get" className="section get" aria-labelledby="get-title">
       <AmbientVideo className="get-light" />
@@ -105,7 +105,34 @@ export function GetIt() {
             )}
           </article>
 
-          <article className="platform" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
+          <article id="get-linux" className="platform" data-reveal="" style={{ "--d": 2 } as React.CSSProperties}>
+            <h3 className="h3">Linux</h3>
+            <p className="small">Ubuntu, Fedora, Debian, Arch and most others. x64 or ARM.</p>
+            {linux ? (
+              <>
+                <p className="body">Paste this into a terminal. It installs Blob for you only, no sudo, and starts it.</p>
+                <pre className="cmd" aria-label="Install command"><code>{linuxInstall}</code></pre>
+                <p className="fine">
+                  Version {linux.version}. Or <a className="link" href={linux.url} download>download the x64 build</a> ({megabytes(linux.bytes)}) and run <code>Blob</code> inside it.
+                </p>
+                <div className="platform-foot">
+                  <details className="first-open">
+                    <summary className="link">Good to know</summary>
+                    <ol>
+                      <li>Blob runs on X11, and on Wayland through XWayland.</li>
+                      <li>On Wayland, apps can’t watch keys pressed in other apps, so bind a keyboard shortcut to <code>blob --toggle-talk</code>, or hold the microphone in the notch.</li>
+                      <li>To talk, you need a recorder: <code>parecord</code> or <code>arecord</code>. Most desktops have one.</li>
+                      <li>To remove it: <code>blob --uninstall</code>.</li>
+                    </ol>
+                  </details>
+                </div>
+              </>
+            ) : (
+              <p className="body">Not out yet.</p>
+            )}
+          </article>
+
+          <article className="platform" data-reveal="" style={{ "--d": 3 } as React.CSSProperties}>
             <h3 className="h3">iPhone</h3>
             <p className="small">A companion to the Mac app.</p>
             <p className="body">
@@ -133,7 +160,7 @@ export function Footer() {
           <a className="link" href="#privacy">Privacy</a>
           <a className="link" href={site.sourceUrl}>Source on GitHub</a>
         </p>
-        <p className="fine">Not affiliated with Apple or Microsoft. MacBook, macOS and Windows are trademarks of their owners.</p>
+        <p className="fine">Not affiliated with Apple or Microsoft. MacBook, macOS and Windows are trademarks of their owners. Linux is a registered trademark of Linus Torvalds.</p>
       </div>
     </footer>
   );

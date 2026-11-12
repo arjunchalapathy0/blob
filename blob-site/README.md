@@ -27,6 +27,8 @@ The download buttons appear by themselves once a release workflow has published 
 - **Mac:** Actions → *Mac release* → Run workflow. It builds Blob.app, and commits
   `public/Blob.zip` and `public/version.json` (which the app's Update button reads).
 - **Windows:** Actions → *Windows release* → Run workflow. It commits `public/windows/`.
+- **Linux:** Actions → *Linux release* → Run workflow. It commits `public/linux/`, including
+  `install.sh`, the one-line installer the site shows.
 
 Vercel redeploys on that commit. See `src/lib/releases.ts`.
 

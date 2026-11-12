@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(site.siteUrl),
   title: "Blob — it lives in your notch and does what you say",
   description:
-    "Blob lives in your MacBook’s notch. Hold right Option, say what you want, and it does it: opens apps, plays music, runs Shortcuts, reads your screen when you ask. Free for Mac and Windows.",
+    "Blob lives in your MacBook’s notch. Hold right Option, say what you want, and it does it: opens apps, plays music, runs Shortcuts, reads your screen when you ask. Free for Mac, Windows and Linux.",
   openGraph: {
     title: "Blob",
     description: "Hold ⌥. Say it. Let go. A notch for your MacBook that does what you say.",
