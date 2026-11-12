@@ -16,6 +16,8 @@ say() { printf '%s\n' "$*"; }
 fail() { printf 'Blob: %s\n' "$*" >&2; exit 1; }
 
 [ "$(uname -s)" = "Linux" ] || fail "this installer is for Linux. On a Mac or Windows PC, download Blob from $BASE."
+CHROMEOS=""
+if [ -e /dev/.cros_milestone ] || [ -d /opt/google/cros-containers ]; then CHROMEOS=1; fi
 case "$(uname -m)" in
   x86_64 | amd64) ARCH=x64 ;;
   aarch64 | arm64) ARCH=arm64 ;;
@@ -51,10 +53,15 @@ ln -sf "$APP/Blob" "$BIN/blob"
 "$APP/Blob" --install >/dev/null
 say "Installed Blob $("$APP/Blob" --version | cut -d' ' -f2) in $APP."
 
-case ":$PATH:" in
-  *":$BIN:"*) ;;
-  *) say "Note: $BIN isn't on your PATH, so open Blob from the apps menu or run $BIN/blob." ;;
-esac
+if [ -n "$CHROMEOS" ]; then
+  say "On a Chromebook, Blob opens as a small window. Find it in the launcher under Linux apps."
+  say "To talk to it, allow the microphone: Settings → About ChromeOS → Developers → Linux development environment."
+else
+  case ":$PATH:" in
+    *":$BIN:"*) ;;
+    *) say "Note: $BIN isn't on your PATH, so open Blob from the apps menu or run $BIN/blob." ;;
+  esac
+fi
 
 # Things Blob uses if they're there.
 if ! command -v parecord >/dev/null 2>&1 && ! command -v arecord >/dev/null 2>&1 && ! command -v pw-record >/dev/null 2>&1; then

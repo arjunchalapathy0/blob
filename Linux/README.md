@@ -32,6 +32,24 @@ to take it back out.
 - A tray icon (where the desktop has one), launch at sign-in, and an Update button that downloads new
   builds from blobnotch.app.
 
+## On a Chromebook
+
+Blob runs in ChromeOS's Linux development environment (turn it on in Settings → About ChromeOS →
+Developers, then run the install command in the Terminal app). ChromeOS places Linux windows itself and
+won't keep one on top or see-through, so on a Chromebook Blob is a small ordinary window instead of a
+notch: always open, moved and closed like any other app, and closing it quits Blob.
+
+- Talk by holding the microphone button. ChromeOS doesn't let Linux apps see other apps' keys or bind
+  keyboard shortcuts to Linux commands, and the microphone has to be allowed in Settings → About
+  ChromeOS → Developers → Linux development environment.
+- Claude Code works inside Linux only. Blob tells it it's on a Chromebook, so it says when a request
+  needs Chrome, ChromeOS settings or Android apps, which it can't reach.
+- Now Playing only sees music in Linux apps, not in Chrome tabs.
+- Blob can't start at sign-in there (ChromeOS starts Linux only when it's needed).
+- School and work Chromebooks often have Linux turned off by the administrator.
+
+Blob detects ChromeOS by itself (`/dev/.cros_milestone`). `BLOB_CHROMEOS=1` or `0` overrides it.
+
 Not on Linux yet: the volume/brightness HUD, Shelf, Calendar, Stats, Mirror, the privacy lock and
 iPhone pairing.
 
@@ -73,5 +91,6 @@ On a virtual X desktop (Xvfb, Openbox, with and without the picom compositor): t
 click-through, Ask with a stand-in for Claude Code, typing, timers, clipboard history from another
 app, Now Playing from a pretend MPRIS player, the Claude Code hook, holding Right Alt (and that
 Right Alt + another key doesn't trigger it), commands to the running app, Settings, the installer,
-and the packaged build's `--self-test`. Not tested yet: a real GNOME or KDE session, real Wayland,
-a real microphone, and the arm64 build.
+and the packaged build's `--self-test`. The Chromebook mode was run the same way with `BLOB_CHROMEOS=1`
+(the window, Ask, staying open, and closing it to quit). Not tested yet: a real Chromebook, a real
+GNOME or KDE session, real Wayland, a real microphone, and the arm64 build.

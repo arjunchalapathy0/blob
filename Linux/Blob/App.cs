@@ -42,7 +42,7 @@ public sealed class App : Application
             s.Music.Start();
             s.Updates.Start();
             s.Timers.Finished += _ => s.Notices.Show("timer", "Time’s up", 5);
-            s.Updates.RestartRequested += () => desktop.Shutdown();
+            s.Updates.RestartRequested += Quit;
 
             // Keep the Claude Code hook and the menu entries pointing at this copy if Blob moved.
             if (ClaudeHookInstaller.NeedsUpdate) { try { ClaudeHookInstaller.Install(); } catch { } }
@@ -76,7 +76,7 @@ public sealed class App : Application
             case "talk-start": _services.Agent.BeginListening(); break;
             case "talk-stop": _services.Agent.EndListening(); break;
             case "settings": ShowSettings(); break;
-            case "quit": _desktop?.Shutdown(); break;
+            case "quit": Quit(); break;
         }
     }
 
@@ -119,5 +119,13 @@ public sealed class App : Application
         _settings.Activate();
     }
 
-    public static void Quit() => _desktop?.Shutdown();
+    private static bool _quitting;
+
+    /// <summary>Quits once. Shutting down closes the windows, and closing the window quits on ChromeOS, so guard against going round.</summary>
+    public static void Quit()
+    {
+        if (_quitting) return;
+        _quitting = true;
+        _desktop?.Shutdown();
+    }
 }

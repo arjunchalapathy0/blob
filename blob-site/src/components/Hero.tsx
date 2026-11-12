@@ -32,7 +32,7 @@ export function Hero() {
           />
         </div>
         <p className="fine" style={i(6)}>
-          Free. macOS 14 or later{windows ? ", Windows 10 or 11" : ""}{linux ? ", most Linux desktops" : ""}. It acts through Claude Code, on
+          Free. macOS 14 or later{windows ? ", Windows 10 or 11" : ""}{linux ? ", most Linux desktops and Chromebooks" : ""}. It acts through Claude Code, on
           your own Claude subscription.
         </p>
       </div>
