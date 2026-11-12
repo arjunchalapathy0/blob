@@ -499,7 +499,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .get .wrap { position: relative; }
 .get-title { position: relative; font-size: clamp(64px, 14.4vw, 232px); line-height: 0.86; letter-spacing: -0.055em; }
 .get-title .blob-anchor { position: absolute; left: 0; right: 0; top: 0; height: 2px; }
-.platforms { margin-top: clamp(48px, 7vw, 96px); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gutter); }
+.platforms { margin-top: clamp(48px, 7vw, 96px); display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gutter); }
+.platform .cmd { margin-top: 16px; width: 100%; font-size: 12.5px; line-height: 20px; padding: 12px 14px; white-space: pre-wrap; word-break: break-all; }
+.platform code { font-family: var(--f-code); font-size: 0.92em; }
+.first-open li code { color: var(--ink); }
 .platform { display: flex; flex-direction: column; align-items: flex-start; padding: 28px; border-radius: 28px; background: rgba(17, 17, 19, 0.86); box-shadow: inset 0 0 0 1px var(--line); }
 .platform .small { margin-top: 6px; }
 .platform .body { margin-top: 14px; font-size: 16px; line-height: 25px; }
@@ -529,7 +532,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .section-head.split, .controls, .scenes-grid, .facts { grid-template-columns: 1fr; }
   .section-head.split .lead { justify-self: start; margin-top: 24px; }
   .tile, .tile.w5, .tile.w3 { grid-column: span 6; }
-  .platforms { grid-template-columns: 1fr; }
+  .platforms { grid-template-columns: 1fr 1fr; }
   .scenes-pin { align-items: flex-start; padding-top: 76px; }
   .scenes-grid { gap: 20px; }
   .scenes-stage { order: -1; }
@@ -549,6 +552,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .quote { font-size: 22px; line-height: 28px; }
   .request { font-size: 15px; padding: 8px 14px; }
   .platform { padding: 22px; }
+  .platforms { grid-template-columns: 1fr; }
   .screen-inner { aspect-ratio: 4 / 3.3; }
   .tile > .blob-anchor { display: none; }
 }

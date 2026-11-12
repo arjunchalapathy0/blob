@@ -1,0 +1,105 @@
+name: Linux release
+
+# Builds Blob for Linux (x64 and arm64) and publishes it on the website as
+# blobnotch.app/linux/Blob-Linux-x64.tar.gz and Blob-Linux-arm64.tar.gz, plus
+# blobnotch.app/linux/version.json for the app's Update button and blobnotch.app/linux/install.sh.
+# Run it from the Actions tab ("Run workflow"), or push a tag like linux-v1.0.0.
+#
+# The builds are self-contained: nothing else to install except, for talking, a recorder
+# (parecord or arecord, which most desktops already have).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g. 1.0.0)"
+        required: false
+        default: "1.0.0"
+      notes:
+        description: "One line about what's new (shown in Blob's Update button)"
+        required: false
+        default: ""
+  push:
+    tags: ["linux-v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: linux-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ "$GITHUB_REF" == refs/tags/linux-v* ]]; then VERSION="${GITHUB_REF#refs/tags/linux-v}"; fi
+          [ -z "$VERSION" ] && VERSION="1.0.0"
+          BUILD=$((100 + GITHUB_RUN_NUMBER))
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: |
+          for arch in x64 arm64; do
+            dotnet publish Linux/Blob/Blob.csproj -c Release -r linux-$arch --self-contained true \
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=false -p:DebugType=none \
+              -p:Version=${{ steps.version.outputs.version }} \
+              -p:AssemblyVersion=${{ steps.version.outputs.version }}.${{ steps.version.outputs.build }} \
+              -p:FileVersion=${{ steps.version.outputs.version }}.${{ steps.version.outputs.build }} \
+              -o out/$arch/Blob
+            # Whisper ships speech libraries for every system; keep only this one.
+            find out/$arch/Blob/runtimes -mindepth 1 -maxdepth 1 ! -name linux-$arch -exec rm -rf {} +
+            rm -f out/$arch/Blob/ggml-metal.metal
+            tar -C out/$arch -czf Blob-Linux-$arch.tar.gz Blob
+            ls -la Blob-Linux-$arch.tar.gz
+          done
+
+      - name: Smoke test
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb > /dev/null
+          ./out/x64/Blob/Blob --version
+          xvfb-run -a ./out/x64/Blob/Blob --self-test
+          echo '{"session_id":"ci","hook_event_name":"SessionStart","cwd":"/tmp"}' | HOME=$RUNNER_TEMP ./out/x64/Blob/Blob --claude-hook
+          test -f "$RUNNER_TEMP/.blob/claude/ci.json"
+
+      - name: Publish to the website
+        env:
+          NOTES: ${{ github.event.inputs.notes }}
+        run: |
+          mkdir -p blob-site/public/linux
+          rm -f blob-site/public/linux/*.tar.gz
+          cp Blob-Linux-x64.tar.gz Blob-Linux-arm64.tar.gz blob-site/public/linux/
+          cp Linux/install.sh blob-site/public/linux/install.sh
+          BYTES=$(wc -c < Blob-Linux-x64.tar.gz | tr -d ' ')
+          ARM_BYTES=$(wc -c < Blob-Linux-arm64.tar.gz | tr -d ' ')
+          jq -n \
+            --arg version "${{ steps.version.outputs.version }}" \
+            --argjson build "${{ steps.version.outputs.build }}" \
+            --arg url "/linux/Blob-Linux-x64.tar.gz" \
+            --arg arm64 "/linux/Blob-Linux-arm64.tar.gz" \
+            --arg notes "$NOTES" \
+            --arg sha "${GITHUB_SHA::7}" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson bytes "$BYTES" \
+            --argjson arm64Bytes "$ARM_BYTES" \
+            '{version:$version, build:$build, url:$url, arm64:$arm64, notes:(if $notes == "" then null else $notes end), sha:$sha, date:$date, bytes:$bytes, arm64Bytes:$arm64Bytes}' \
+            > blob-site/public/linux/version.json
+          cat blob-site/public/linux/version.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blob-site/public/linux
+          git commit -m "Publish Blob ${{ steps.version.outputs.version }} (build ${{ steps.version.outputs.build }}) for Linux"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep $((i * 5)); done
