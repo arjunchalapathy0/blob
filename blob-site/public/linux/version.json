@@ -1,11 +1,11 @@
 {
   "version": "1.0.0",
-  "build": 101,
+  "build": 102,
   "url": "/linux/Blob-Linux-x64.tar.gz",
   "arm64": "/linux/Blob-Linux-arm64.tar.gz",
   "notes": null,
-  "sha": "65d494f",
-  "date": "2026-11-12T14:00:00Z",
-  "bytes": 38822468,
-  "arm64Bytes": 37031708
+  "sha": "90cf18c",
+  "date": "2026-11-13T13:49:11Z",
+  "bytes": 38833774,
+  "arm64Bytes": 37061887
 }
