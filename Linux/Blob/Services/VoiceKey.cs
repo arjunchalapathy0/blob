@@ -26,7 +26,7 @@ public sealed class VoiceKey
     public event Action? Cancelled;
 
     /// <summary>Whether the key can be watched in this session.</summary>
-    public static bool IsSupported => X11.Available && !X11.IsWayland;
+    public static bool IsSupported => X11.Available && !X11.IsWayland && !Platform.IsChromeOS;
 
     public VoiceKey()
     {
