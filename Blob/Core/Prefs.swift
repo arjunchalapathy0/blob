@@ -22,6 +22,7 @@ enum Prefs {
     static let appIcon = "appIcon"
     static let phoneTasks = "phoneTasks"
     static let selectedCamera = "selectedCamera"
+    static let toggleHotkey = "toggleHotkey"
 
     static func registerDefaults() {
         var defaults: [String: Any] = [
@@ -42,6 +43,7 @@ enum Prefs {
             phoneBridge: false,
             voiceKey: true,
             phoneTasks: true,
+            toggleHotkey: true,
         ]
         for module in ModuleID.allCases { defaults[module.prefKey] = true }
         UserDefaults.standard.register(defaults: defaults)
