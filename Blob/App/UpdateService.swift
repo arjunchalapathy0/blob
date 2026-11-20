@@ -194,7 +194,7 @@ final class UpdateService: ObservableObject {
     }
 
     private func updateFromWeb() {
-        guard let feed, let url = URL(string: feed.url, relativeTo: Self.feedURL) else {
+        guard let feed, let url = Self.trustedDownloadURL(feed.url) else {
             Task { await checkWeb() }
             return
         }
@@ -217,6 +217,15 @@ final class UpdateService: ObservableObject {
                 notices.message("exclamationmark.triangle.fill", "Update failed", duration: 3)
             }
         }
+    }
+
+    /// Only fetch zips from blobnotch.app over HTTPS. `version.json` could otherwise name any URL.
+    private static func trustedDownloadURL(_ raw: String) -> URL? {
+        guard let url = URL(string: raw, relativeTo: feedURL)?.absoluteURL,
+              url.scheme?.lowercased() == "https",
+              let host = url.host?.lowercased(),
+              host == "blobnotch.app" || host.hasSuffix(".blobnotch.app") else { return nil }
+        return url
     }
 
     /// Same as update.sh's install step, for copies that have no source folder.

@@ -14,6 +14,7 @@ final class AdapterBackend: NowPlayingBackend {
     private var state: [String: Any] = [:]
     private var stopped = false
     private var restartDelay: TimeInterval = 1
+    private var commands: [Process] = []
 
     init?() {
         guard let script = Bundle.main.path(forResource: "mediaremote-adapter", ofType: "pl"),
@@ -130,11 +131,19 @@ final class AdapterBackend: NowPlayingBackend {
     // MARK: - Commands
 
     private func run(_ args: [String]) {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        p.arguments = [script, framework] + args
-        p.standardOutput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
-        try? p.run()
+        queue.async { [self] in
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
+            p.arguments = [script, framework] + args
+            p.standardOutput = FileHandle.nullDevice
+            p.standardError = FileHandle.nullDevice
+            p.terminationHandler = { [weak self] proc in
+                self?.queue.async { self?.commands.removeAll { $0 === proc } }
+            }
+            do {
+                try p.run()
+                commands.append(p)
+            } catch {}
+        }
     }
 }

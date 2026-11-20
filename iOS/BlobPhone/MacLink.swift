@@ -19,6 +19,7 @@ final class MacLink: ObservableObject {
     private var endedDoneKey: String?
     private var lastStates: [String: String] = [:]
     private var askHandlers: [String: (Bridge.AskEvent, String) -> Void] = [:]
+    private static let maxBuffer = 8 * 1024 * 1024
 
     private static let codeKey = "macPairingCode"
 
@@ -77,6 +78,10 @@ final class MacLink: ObservableObject {
                 guard let self else { return }
                 if let data {
                     self.buffer.append(data)
+                    if self.buffer.count > Self.maxBuffer {
+                        self.drop()
+                        return
+                    }
                     for line in Bridge.takeLines(from: &self.buffer) { self.handle(line) }
                 }
                 if complete || error != nil { self.drop() } else { self.receive() }
@@ -93,6 +98,8 @@ final class MacLink: ObservableObject {
         case .denied?:
             UserDefaults.standard.removeObject(forKey: Self.codeKey)
             status = .needsCode(macName)
+            for handler in askHandlers.values { handler(.error, "That pairing code wasn’t accepted.") }
+            askHandlers.removeAll()
         case .askEvent(let id, let event, let text)?:
             askHandlers[id]?(event, text)
             if event == .final || event == .error { askHandlers[id] = nil }
@@ -158,7 +165,7 @@ final class MacLink: ObservableObject {
             if s.state == "waiting" { alert = ("\(s.project) needs you", s.detail) }
             else if s.state == "done", alert == nil { alert = ("\(s.project) is done", "Claude finished.") }
         }
-        lastStates = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0.state) })
+        lastStates = Dictionary(sessions.map { ($0.id, $0.state) }, uniquingKeysWith: { _, last in last })
 
         let recent = sessions.filter { $0.state != "idle" && Date().timeIntervalSince($0.updated) < 30 * 60 }
         let focus = recent.first { $0.state == "waiting" } ?? recent.first { $0.state == "working" } ?? recent.first

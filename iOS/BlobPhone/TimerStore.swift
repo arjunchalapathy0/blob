@@ -1,3 +1,4 @@
+import ActivityKit
 import Foundation
 import UserNotifications
 
@@ -20,6 +21,31 @@ final class TimerStore: ObservableObject {
            let saved = try? JSONDecoder().decode([PhoneTimer].self, from: data) {
             timers = saved.filter { $0.end > Date().addingTimeInterval(-60) }
         }
+        restoreActivities()
+    }
+
+    /// After relaunch, Live Activities and notifications do not come back on their own.
+    private func restoreActivities() {
+        let now = Date()
+        let existing = IslandManager.activities(of: .timer)
+        for i in timers.indices {
+            let timer = timers[i]
+            guard timer.end > now else { continue }
+            if let match = existing.first(where: { $0.content.state.endDate == timer.end }) {
+                timers[i].activityID = match.id
+                IslandManager.update(
+                    id: match.id,
+                    state: .init(mood: Mood.idle.rawValue, title: "Timer", detail: timer.label, endDate: timer.end, startDate: timer.end.addingTimeInterval(-timer.duration)),
+                    staleDate: timer.end)
+            } else {
+                timers[i].activityID = IslandManager.start(
+                    kind: .timer,
+                    state: .init(mood: Mood.idle.rawValue, title: "Timer", detail: timer.label, endDate: timer.end, startDate: timer.end.addingTimeInterval(-timer.duration)),
+                    staleDate: timer.end)
+            }
+            scheduleNotification(for: timers[i])
+        }
+        if !timers.isEmpty { save() }
     }
 
     func add(minutes: Double) {
