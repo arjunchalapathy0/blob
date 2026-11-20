@@ -50,7 +50,7 @@ final class Services: ObservableObject {
         claude.start()
         stats.start()
         updates.start()
-        lock.start()
+        lock.start(camera: camera)
         agent.start()
         phoneBridge.start(claude: claude, ask: ask, agent: agent)
     }

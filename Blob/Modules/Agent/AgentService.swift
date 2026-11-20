@@ -113,19 +113,23 @@ final class AgentService: ObservableObject {
             return
         }
         phase = .transcribing
-        Task {
+        task = Task {
             defer { try? FileManager.default.removeItem(at: recording.url) }
             do {
                 if !(await transcriber.isReady) { whisperStatus = "Downloading Whisper…" }
                 let text = try await transcriber.transcribe(recording.url)
                 whisperStatus = "Ready"
+                guard !Task.isCancelled, phase == .transcribing else { return }
                 guard !text.isEmpty else {
                     phase = .idle
                     notices.message("ear", "Didn’t catch that", duration: 1.8)
                     return
                 }
                 run(text)
+            } catch is CancellationError {
+                phase = .idle
             } catch {
+                guard !Task.isCancelled else { return }
                 fail("Couldn’t transcribe: \(error.localizedDescription)")
             }
         }
@@ -189,7 +193,8 @@ final class AgentService: ObservableObject {
     func cancel() {
         task?.cancel()
         task = nil
-        if phase == .working { phase = .idle }
+        cancelListening()
+        if phase == .working || phase == .transcribing { phase = .idle }
     }
 
     func newConversation() {

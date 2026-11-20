@@ -45,6 +45,8 @@ final class CameraService: ObservableObject {
     let box = CaptureBox()
     private var visible = false
     private var observing = false
+    /// Face unlock takes the camera; Mirror waits until the scan finishes.
+    private var suspended = false
 
     var hasCamera: Bool { !cameras.isEmpty }
 
@@ -84,7 +86,7 @@ final class CameraService: ObservableObject {
     func selectCamera(_ camera: Camera) {
         selectedCameraID = camera.id
         UserDefaults.standard.set(camera.id, forKey: Prefs.selectedCamera)
-        if visible, status == .authorized { box.start(cameraID: camera.id) }
+        if visible, !suspended, status == .authorized { box.start(cameraID: camera.id) }
     }
 
     /// Sets the Mac's default input, so every app uses this microphone.
@@ -98,14 +100,27 @@ final class CameraService: ObservableObject {
         self.visible = visible
         status = AVCaptureDevice.authorizationStatus(for: .video)
         if visible { refreshDevices() }
+        if suspended { return }
         if visible, status == .authorized { box.start(cameraID: selectedCameraID) } else { box.stop() }
+    }
+
+    /// Stops the Mirror preview so face unlock can use the camera, then restores it.
+    func suspend() {
+        suspended = true
+        box.stop()
+    }
+
+    func resume() {
+        guard suspended else { return }
+        suspended = false
+        if visible, status == .authorized { box.start(cameraID: selectedCameraID) }
     }
 
     func requestAccess() {
         Task {
             let granted = await AVCaptureDevice.requestAccess(for: .video)
             status = AVCaptureDevice.authorizationStatus(for: .video)
-            if granted, visible { box.start(cameraID: selectedCameraID) }
+            if granted, visible, !suspended { box.start(cameraID: selectedCameraID) }
             if !granted, let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
                 NSWorkspace.shared.open(url)
             }

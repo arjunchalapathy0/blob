@@ -72,7 +72,7 @@ private struct ShelfTile: View {
         .animation(Springs.snap, value: hovering)
         .onHover { hovering = $0 }
         .onTapGesture(count: 2) { shelf.open(item) }
-        .onDrag { item.url.flatMap { NSItemProvider(contentsOf: $0) } ?? NSItemProvider() }
+        .onDrag { shelf.resolvedURL(for: item).flatMap { NSItemProvider(contentsOf: $0) } ?? NSItemProvider() }
         .contextMenu {
             Button("Open") { shelf.open(item) }
             Button("Show in Finder") { shelf.reveal([item]) }

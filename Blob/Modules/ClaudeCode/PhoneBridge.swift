@@ -27,6 +27,9 @@ final class PhoneBridge: ObservableObject {
     private weak var ask: AskService?
     private weak var agent: AgentService?
     private var failedCodes: [Date] = []
+    /// Connection that started the in-flight agent task, so disconnect can cancel it.
+    private var agentOwner: ObjectIdentifier?
+    private static let maxBuffer = 8 * 1024 * 1024
 
     private static let codeKey = "phonePairingCode"
 
@@ -114,6 +117,10 @@ final class PhoneBridge: ObservableObject {
     private func remove(_ key: ObjectIdentifier) {
         guard let client = clients.removeValue(forKey: key) else { return }
         client.tasks.values.forEach { $0.cancel() }
+        if agentOwner == key {
+            agent?.cancel()
+            agentOwner = nil
+        }
         pairedCount = clients.values.filter(\.authorized).count
     }
 
@@ -123,6 +130,10 @@ final class PhoneBridge: ObservableObject {
                 guard let self else { return }
                 if let data {
                     client.buffer.append(data)
+                    if client.buffer.count > Self.maxBuffer {
+                        client.connection.cancel()
+                        return
+                    }
                     for line in Bridge.takeLines(from: &client.buffer) { self.handle(line, from: client) }
                 }
                 if complete || error != nil { client.connection.cancel() } else { self.receive(client, key: key) }
@@ -162,7 +173,8 @@ final class PhoneBridge: ObservableObject {
                 return
             }
             var sentFinal = false
-            agent.run(text) { event in
+            agentOwner = ObjectIdentifier(client.connection)
+            agent.run(text) { [weak self] event in
                 switch event {
                 case .reset: reply(.reset)
                 case .text(let t): reply(.text, t)
@@ -171,6 +183,8 @@ final class PhoneBridge: ObservableObject {
                 case .failure(let m): if !sentFinal { reply(.error, m) }
                 case .session: break
                 }
+                if case .final = event { self?.agentOwner = nil }
+                if case .failure = event { self?.agentOwner = nil }
             }
 
         default:
