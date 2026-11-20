@@ -6,6 +6,7 @@ final class QuickToolsService: ObservableObject {
     @Published private(set) var isCaffeinated = false
     private var assertion: IOPMAssertionID = 0
     private let notices: NoticeCenter
+    private var screenshotProcess: Process?
 
     init(notices: NoticeCenter) { self.notices = notices }
 
@@ -52,11 +53,13 @@ final class QuickToolsService: ObservableObject {
         let before = NSPasteboard.general.changeCount
         p.terminationHandler = { [weak self] _ in
             Task { @MainActor in
+                self?.screenshotProcess = nil
                 if NSPasteboard.general.changeCount != before {
                     self?.notices.message("camera.viewfinder", "Screenshot copied")
                 }
             }
         }
+        screenshotProcess = p
         try? p.run()
     }
 

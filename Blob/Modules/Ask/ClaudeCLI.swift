@@ -119,12 +119,11 @@ enum ClaudeCLI {
         p.standardInput = FileHandle.nullDevice
         try p.run()
 
-        let log = Log(label: label)
+        let log = Log()
         var gotResult = false
         var sentSession = false
         try await withTaskCancellationHandler {
             for try await line in out.fileHandleForReading.bytes.lines {
-                log.append(line)
                 for event in parse(line) {
                     switch event {
                     case .final, .failure: gotResult = true
@@ -139,7 +138,7 @@ enum ClaudeCLI {
         }
         while p.isRunning { try await Task.sleep(for: .milliseconds(50)) }
         let stderr = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        log.append("exit \(p.terminationStatus)\n" + stderr)
+        log.append("exit \(p.terminationStatus) requestChars=\(label.count)\n" + stderr)
         log.save()
         if !gotResult {
             // Hook chatter isn't the real problem; show the rest.
@@ -148,10 +147,11 @@ enum ClaudeCLI {
         }
     }
 
-    /// Keeps the last run's raw output in ~/Library/Logs/Blob/ask.log for troubleshooting.
+    /// Keeps the last run's exit status and stderr in ~/Library/Logs/Blob/ask.log.
+    /// Prompts and streamed stdout stay out of the file — they can contain screen contents.
     private final class Log {
         private var text: String
-        init(label: String) { text = "\(Date()) request: \(label)\n" }
+        init() { text = "\(Date())\n" }
         func append(_ line: String) { text += line + "\n" }
         func save() {
             let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Blob", isDirectory: true)

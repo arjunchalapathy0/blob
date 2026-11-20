@@ -91,15 +91,19 @@ final class TimerService: ObservableObject {
 
     private func tick() {
         let now = Date()
-        guard let done = timers.first(where: { !$0.isPaused && $0.remaining(at: now) <= 0 }) else { return }
-        timers.removeAll { $0.id == done.id }
-        ringing = done
-        if Prefs.bool(Prefs.timerSound) { NSSound(named: "Glass")?.play() }
-        ringTask?.cancel()
-        ringTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(8))
-            guard !Task.isCancelled else { return }
-            self?.ringing = nil
+        let done = timers.filter { !$0.isPaused && $0.remaining(at: now) <= 0 }
+        guard !done.isEmpty else { return }
+        timers.removeAll { t in done.contains(where: { $0.id == t.id }) }
+        // Keep the first ringing notice; later finishers in the same tick don't replace it.
+        if ringing == nil {
+            ringing = done[0]
+            if Prefs.bool(Prefs.timerSound) { NSSound(named: "Glass")?.play() }
+            ringTask?.cancel()
+            ringTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(8))
+                guard !Task.isCancelled else { return }
+                self?.ringing = nil
+            }
         }
     }
 

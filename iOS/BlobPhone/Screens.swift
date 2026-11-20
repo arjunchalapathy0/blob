@@ -86,7 +86,7 @@ struct AskScreen: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: pick) { _, item in
-            Task {
+            Task { @MainActor in
                 if let data = try? await item?.loadTransferable(type: Data.self), let image = UIImage(data: data) {
                     ask.image = image
                 }

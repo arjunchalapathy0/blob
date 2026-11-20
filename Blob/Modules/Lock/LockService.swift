@@ -12,9 +12,12 @@ final class LockService: ObservableObject {
     @Published private(set) var faceStatus: String?
     @Published private(set) var isScanningFace = false
     @Published private(set) var faceEnrolled = FaceUnlock.isEnrolled
+    /// Shown when unlocking is impossible (no password / Touch ID on this Mac).
+    @Published private(set) var unlockError: String?
     private var faceTask: Task<Void, Never>?
     private var relockTask: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
+    private weak var camera: CameraService?
 
     static let protected: Set<ModuleID> = [.clipboard, .shelf, .ask]
 
@@ -30,7 +33,8 @@ final class LockService: ObservableObject {
         isEnabled && !isUnlocked && Self.protected.contains(module)
     }
 
-    func start() {
+    func start(camera: CameraService) {
+        self.camera = camera
         let workspace = NSWorkspace.shared.notificationCenter
         observers.append(workspace.addObserver(forName: NSWorkspace.screensDidSleepNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.lock() }
@@ -42,12 +46,13 @@ final class LockService: ObservableObject {
     }
 
     func unlock() {
+        unlockError = nil
         let context = LAContext()
         context.localizedCancelTitle = "Cancel"
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
-            // No password or biometrics set up on this Mac: nothing to check against.
-            isUnlocked = true
+            // Stay locked: requiring auth with nothing to check against must not open private tabs.
+            unlockError = "Set a login password or Touch ID on this Mac, or turn the lock off in Settings."
             return
         }
         Task {
@@ -75,7 +80,12 @@ final class LockService: ObservableObject {
         isScanningFace = true
         faceStatus = "Look at the camera and blink"
         let camera = cameraID
+        self.camera?.suspend()
         faceTask = Task {
+            defer {
+                self.camera?.resume()
+                isScanningFace = false
+            }
             do {
                 try await FaceUnlock.verify(cameraID: camera)
                 guard !Task.isCancelled else { return }
@@ -84,7 +94,6 @@ final class LockService: ObservableObject {
             } catch {
                 if !Task.isCancelled { faceStatus = error.localizedDescription }
             }
-            isScanningFace = false
         }
     }
 
@@ -94,7 +103,12 @@ final class LockService: ObservableObject {
         isScanningFace = true
         faceStatus = "Look at the camera…"
         let camera = cameraID
+        self.camera?.suspend()
         faceTask = Task {
+            defer {
+                self.camera?.resume()
+                isScanningFace = false
+            }
             do {
                 try await FaceUnlock.enroll(cameraID: camera) { count in
                     Task { @MainActor in self.faceStatus = "Hold still… \(count) of 8" }
@@ -105,7 +119,6 @@ final class LockService: ObservableObject {
             } catch {
                 faceStatus = error.localizedDescription
             }
-            isScanningFace = false
         }
     }
 
@@ -140,9 +153,10 @@ struct LockGate<Content: View>: View {
     var body: some View {
         if lock.needsUnlock(module) {
             EmptyState(text: "\(module.title) is locked",
-                       detail: lock.faceEnabled
+                       detail: lock.unlockError
+                           ?? (lock.faceEnabled
                            ? (lock.faceStatus ?? "Look at the camera and blink, or use \(lock.biometryName).")
-                           : "Unlock with \(lock.biometryName).",
+                           : "Unlock with \(lock.biometryName)."),
                        mood: lock.isScanningFace ? .curious : .sleepy,
                        actionTitle: lock.faceEnabled && !lock.isScanningFace ? "Try my face again" : "Unlock") {
                 if lock.faceEnabled && !lock.isScanningFace { lock.unlockWithFace() } else { lock.unlock() }

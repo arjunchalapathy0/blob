@@ -27,6 +27,13 @@ final class VoiceKey {
     func stop() {
         monitors.forEach(NSEvent.removeMonitor)
         monitors.removeAll()
+        holdTask?.cancel()
+        holdTask = nil
+        isDown = false
+        let wasActive = isActive
+        isActive = false
+        // Drop an in-progress hold so disabling the voice key never leaves the mic on.
+        if wasActive { onCancel() }
     }
 
     private func flagsChanged(_ event: NSEvent) {

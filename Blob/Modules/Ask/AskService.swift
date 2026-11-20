@@ -20,8 +20,8 @@ final class AskService: ObservableObject {
 
     static let model = "claude-opus-5-5"
 
-    /// Keep the notch open while typing, waiting or reading.
-    var holdsOpen: Bool { isBusy || !question.isEmpty }
+    /// Keep the notch open while typing, waiting or reading the answer.
+    var holdsOpen: Bool { isBusy || !question.isEmpty || !answer.isEmpty || error != nil }
 
     var hasResult: Bool { !answer.isEmpty || error != nil || isBusy }
 
