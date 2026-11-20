@@ -1,8 +1,8 @@
 import AppKit
 import Combine
 
-struct BlobTimer: Identifiable, Equatable {
-    let id = UUID()
+struct BlobTimer: Identifiable, Equatable, Codable {
+    var id = UUID()
     var label: String
     var duration: TimeInterval
     var endDate: Date
@@ -29,8 +29,17 @@ final class TimerService: ObservableObject {
     private let notices: NoticeCenter
     private var bag = Set<AnyCancellable>()
     private var ringTask: Task<Void, Never>?
+    private let file: URL = {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Blob", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("timers.json")
+    }()
 
-    init(notices: NoticeCenter) { self.notices = notices }
+    init(notices: NoticeCenter) {
+        self.notices = notices
+        load()
+    }
 
     /// The running timer that finishes first.
     var primary: BlobTimer? {
@@ -54,6 +63,7 @@ final class TimerService: ObservableObject {
         let duration = minutes * 60
         let name = label ?? (minutes < 1 ? "\(Int(duration))s" : "\(Int(minutes)) min")
         timers.append(BlobTimer(label: name, duration: duration, endDate: Date().addingTimeInterval(duration)))
+        save()
     }
 
     func togglePause(_ timer: BlobTimer) {
@@ -64,10 +74,12 @@ final class TimerService: ObservableObject {
         } else {
             timers[i].pausedRemaining = timers[i].remaining(at: Date())
         }
+        save()
     }
 
     func cancel(_ timer: BlobTimer) {
         timers.removeAll { $0.id == timer.id }
+        save()
     }
 
     func dismissRinging() {
@@ -94,6 +106,7 @@ final class TimerService: ObservableObject {
         let done = timers.filter { !$0.isPaused && $0.remaining(at: now) <= 0 }
         guard !done.isEmpty else { return }
         timers.removeAll { t in done.contains(where: { $0.id == t.id }) }
+        save()
         // Keep the first ringing notice; later finishers in the same tick don't replace it.
         if ringing == nil {
             ringing = done[0]
@@ -105,6 +118,36 @@ final class TimerService: ObservableObject {
                 self?.ringing = nil
             }
         }
+    }
+
+    private func load() {
+        guard let data = try? Data(contentsOf: file),
+              let saved = try? JSONDecoder().decode([BlobTimer].self, from: data) else { return }
+        let now = Date()
+        var keep: [BlobTimer] = []
+        var justFinished: BlobTimer?
+        for timer in saved {
+            if timer.isPaused || timer.remaining(at: now) > 0 {
+                keep.append(timer)
+            } else if now.timeIntervalSince(timer.endDate) < 60, justFinished == nil {
+                justFinished = timer
+            }
+        }
+        timers = keep
+        if keep.count != saved.count { save() }
+        if let justFinished {
+            ringing = justFinished
+            if Prefs.bool(Prefs.timerSound) { NSSound(named: "Glass")?.play() }
+            ringTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(8))
+                guard !Task.isCancelled else { return }
+                self?.ringing = nil
+            }
+        }
+    }
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(timers) { try? data.write(to: file, options: .atomic) }
     }
 
 }
