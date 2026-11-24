@@ -80,8 +80,8 @@ final class LockService: ObservableObject {
         isScanningFace = true
         faceStatus = "Look at the camera and blink"
         let camera = cameraID
-        self.camera?.suspend()
         faceTask = Task {
+            await self.camera?.suspend()
             defer {
                 self.camera?.resume()
                 isScanningFace = false
@@ -103,8 +103,8 @@ final class LockService: ObservableObject {
         isScanningFace = true
         faceStatus = "Look at the camera…"
         let camera = cameraID
-        self.camera?.suspend()
         faceTask = Task {
+            await self.camera?.suspend()
             defer {
                 self.camera?.resume()
                 isScanningFace = false

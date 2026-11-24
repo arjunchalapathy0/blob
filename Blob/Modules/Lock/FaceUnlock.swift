@@ -59,7 +59,7 @@ final class FaceUnlock: @unchecked Sendable {
         var eyes: [Float] = []
         let deadline = Date().addingTimeInterval(20)
         var lastTaken = Date.distantPast
-        for await sample in try frames(cameraID: cameraID) {
+        for await sample in try frames(cameraID: cameraID, seconds: 20) {
             if Date() > deadline { break }
             guard let print = sample.print, let e = sample.eyes else { continue }
             guard Date().timeIntervalSince(lastTaken) > 0.25 else { continue }
@@ -110,7 +110,7 @@ final class FaceUnlock: @unchecked Sendable {
         var matches = 0, matchesAfterBlink = 0, faces = 0, strangers = 0
         let deadline = Date().addingTimeInterval(10)
 
-        for await sample in try frames(cameraID: cameraID) {
+        for await sample in try frames(cameraID: cameraID, seconds: 10) {
             if Date() > deadline { break }
             guard let print = sample.print, let eyes = sample.eyes else { continue }
             faces += 1
@@ -147,11 +147,19 @@ final class FaceUnlock: @unchecked Sendable {
     }
 
     /// Camera frames, analysed on a background queue. The camera turns off when the loop ends.
-    private static func frames(cameraID: String?) throws -> AsyncStream<Sample> {
-        let device = cameraID.flatMap { AVCaptureDevice(uniqueID: $0) } ?? AVCaptureDevice.default(for: .video)
+    ///
+    /// `startRunning()` must not run on the sample-buffer queue: it blocks until the session is
+    /// ready, and the session delivers the first frame on that queue, which deadlocks — no frames
+    /// ever arrive, and the `for await` loop never reaches its deadline.
+    private static func frames(cameraID: String?, seconds: TimeInterval) throws -> AsyncStream<Sample> {
+        let device = resolveDevice(cameraID)
         guard let device, let input = try? AVCaptureDeviceInput(device: device) else { throw Failure.noCamera }
         let session = AVCaptureSession()
-        session.sessionPreset = .vga640x480
+        if session.canSetSessionPreset(.vga640x480) {
+            session.sessionPreset = .vga640x480
+        } else if session.canSetSessionPreset(.medium) {
+            session.sessionPreset = .medium
+        }
         guard session.canAddInput(input) else { throw Failure.noCamera }
         session.addInput(input)
         let output = AVCaptureVideoDataOutput()
@@ -162,17 +170,40 @@ final class FaceUnlock: @unchecked Sendable {
 
         return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let reader = FrameReader { buffer in continuation.yield(analyse(buffer)) }
-            let queue = DispatchQueue(label: "app.blob.face")
-            output.setSampleBufferDelegate(reader, queue: queue)
+            let sessionQueue = DispatchQueue(label: "app.blob.face.session")
+            let sampleQueue = DispatchQueue(label: "app.blob.face.sample")
+            output.setSampleBufferDelegate(reader, queue: sampleQueue)
+            // finish() is not safe to call twice; both start-failure and the watchdog use this.
+            var finished = false
+            let finishOnce = {
+                sessionQueue.async {
+                    guard !finished else { return }
+                    finished = true
+                    continuation.finish()
+                }
+            }
             continuation.onTermination = { _ in
-                queue.async {
+                sessionQueue.async {
                     output.setSampleBufferDelegate(nil, queue: nil)
-                    session.stopRunning()
+                    if session.isRunning { session.stopRunning() }
                     _ = reader
                 }
             }
-            queue.async { session.startRunning() }
+            sessionQueue.async {
+                session.startRunning()
+                if !session.isRunning { finishOnce() }
+            }
+            // If no frames arrive, still end the stream so enroll/verify can throw instead of hanging.
+            sessionQueue.asyncAfter(deadline: .now() + seconds + 0.4) {
+                finishOnce()
+            }
         }
+    }
+
+    private static func resolveDevice(_ cameraID: String?) -> AVCaptureDevice? {
+        if let cameraID, let device = AVCaptureDevice(uniqueID: cameraID), device.isConnected { return device }
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)
+            ?? AVCaptureDevice.default(for: .video)
     }
 
     private final class FrameReader: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {

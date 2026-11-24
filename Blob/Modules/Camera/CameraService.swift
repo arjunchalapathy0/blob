@@ -26,9 +26,25 @@ final class CaptureBox {
     }
 
     func stop() {
-        queue.async { [self] in
-            if session.isRunning { session.stopRunning() }
+        queue.async { [self] in halt() }
+    }
+
+    /// Stops the session and drops the device so Face Unlock can open it.
+    func stopAndWait() async {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                halt()
+                continuation.resume()
+            }
         }
+    }
+
+    private func halt() {
+        if session.isRunning { session.stopRunning() }
+        session.beginConfiguration()
+        session.inputs.forEach(session.removeInput)
+        session.commitConfiguration()
+        currentID = nil
     }
 }
 
@@ -105,9 +121,9 @@ final class CameraService: ObservableObject {
     }
 
     /// Stops the Mirror preview so face unlock can use the camera, then restores it.
-    func suspend() {
+    func suspend() async {
         suspended = true
-        box.stop()
+        await box.stopAndWait()
     }
 
     func resume() {
