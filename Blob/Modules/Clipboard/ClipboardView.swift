@@ -2,6 +2,14 @@ import SwiftUI
 
 struct ClipboardView: View {
     @EnvironmentObject private var clipboard: ClipboardService
+    @State private var query = ""
+    @FocusState private var searching: Bool
+
+    private var visible: [ClipItem] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return clipboard.items }
+        return clipboard.items.filter { $0.text.localizedStandardContains(q) }
+    }
 
     var body: some View {
         if clipboard.items.isEmpty {
@@ -13,16 +21,42 @@ struct ClipboardView: View {
                     Spacer()
                     PillButton(title: "Clear", symbol: "xmark") { withAnimation(Springs.snap) { clipboard.clearUnpinned() } }
                 }
+                searchBar
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 4) {
-                        ForEach(clipboard.items) { item in
-                            ClipRow(item: item)
+                        if visible.isEmpty {
+                            Text("No matches")
+                                .font(Theme.font(12)).foregroundStyle(Theme.tertiary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                        } else {
+                            ForEach(visible) { item in
+                                ClipRow(item: item)
+                            }
                         }
                     }
                     .animation(Springs.snap, value: clipboard.items)
+                    .animation(Springs.snap, value: query)
                 }
             }
         }
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.tertiary)
+            TextField("Search copies", text: $query)
+                .textFieldStyle(.plain)
+                .font(Theme.font(13))
+                .foregroundStyle(Theme.ink)
+                .focused($searching)
+            if !query.isEmpty {
+                IconButton(symbol: "xmark", size: 10, help: "Clear search") { query = "" }
+            }
+        }
+        .padding(.leading, 12).padding(.trailing, query.isEmpty ? 12 : 4).padding(.vertical, 2)
+        .background(Theme.fill, in: Capsule())
+        .overlay(Capsule().strokeBorder(searching ? Theme.hairline : .clear))
     }
 }
 
