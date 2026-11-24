@@ -15,6 +15,8 @@ final class NotchViewModel: ObservableObject {
     @Published var isDropTargeted = false {
         didSet { if isDropTargeted { cancelClose() } }
     }
+    /// Opened with ⌃⌥B while the cursor is away; stays until the cursor enters or the notch closes.
+    private var stayForHotkey = false
 
     let screen: NSScreen
     let notch: CGSize
@@ -127,7 +129,18 @@ final class NotchViewModel: ObservableObject {
         setPhase(.open)
     }
 
+    /// Toggle from the global hotkey. Keeps the notch open even if the cursor isn't over it.
+    func toggleFromHotkey() {
+        if phase == .open {
+            close()
+        } else {
+            stayForHotkey = true
+            open()
+        }
+    }
+
     func close() {
+        stayForHotkey = false
         cancelHover(); cancelClose()
         guard phase != .closed else { return }
         setPhase(.closed)
@@ -189,7 +202,8 @@ final class NotchViewModel: ObservableObject {
         case .peek:
             if !inside { cancelHover(); setPhase(.closed) }
         case .open:
-            if inside || isDropTargeted || isPinned || holdsOpen || isWelcoming { cancelClose() } else { scheduleClose() }
+            if inside { stayForHotkey = false }
+            if inside || isDropTargeted || isPinned || holdsOpen || isWelcoming || stayForHotkey { cancelClose() } else { scheduleClose() }
         }
         if inside { lastInteraction = Date() }
     }

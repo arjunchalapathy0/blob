@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controllers: [NotchWindowController] = []
     private var bag = Set<AnyCancellable>()
     private var lastLayoutPrefs: [Bool] = []
+    private let hotKey = NotchHotKey()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -29,6 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &bag)
 
         lastLayoutPrefs = layoutPrefs
+        hotKey.onPressed = { [weak self] in self?.toggleFromHotkey() }
+        applyHotKey()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -60,8 +63,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var layoutPrefs: [Bool] { [Prefs.bool(Prefs.allDisplays)] }
 
+    private func applyHotKey() {
+        if Prefs.bool(Prefs.toggleHotkey) { hotKey.start() } else { hotKey.stop() }
+    }
+
+    private func toggleFromHotkey() {
+        if controllers.contains(where: { $0.vm.phase == .open }) {
+            controllers.forEach { $0.vm.close() }
+            return
+        }
+        let point = NSEvent.mouseLocation
+        let target = controllers.first { $0.vm.screen.frame.contains(point) } ?? controllers.first
+        target?.vm.toggleFromHotkey()
+    }
+
     private func preferencesChanged() {
         controllers.forEach { $0.applyPreferences() }
+        applyHotKey()
         if layoutPrefs != lastLayoutPrefs {
             lastLayoutPrefs = layoutPrefs
             rebuild()

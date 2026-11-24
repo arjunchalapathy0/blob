@@ -30,6 +30,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.phoneBridge) private var phoneBridgeOn = false
     @AppStorage(Prefs.voiceKey) private var voiceKey = true
     @AppStorage(Prefs.phoneTasks) private var phoneTasks = true
+    @AppStorage(Prefs.toggleHotkey) private var toggleHotkey = true
 
     @State private var appIcon = AppIconChoice.current
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -153,6 +154,7 @@ struct SettingsView: View {
             }
 
             Section("Behavior") {
+                Toggle("Open with ⌃⌥B", isOn: $toggleHotkey)
                 Toggle("Open on hover", isOn: $openOnHover)
                 if openOnHover {
                     LabeledContent("Hover delay") {
